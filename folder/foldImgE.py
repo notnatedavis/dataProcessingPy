@@ -1,6 +1,6 @@
 # --- foldImgE.py --- #
 # encrypts image(s) into .txt files (specific format) within same directory of folder
-# includes pre-crop to ensure dimensions divisible by 4 for spatial shuffle compatibility
+# includes pre-crop to ensure dimensions divisible by 8 for spatial shuffle compatibility
 
 # --- Imports --- #
 import os
@@ -17,7 +17,7 @@ VALID_DIRECTORIES = [
     "C:\\Users\\davis\\OneDrive\\Desktop\\everything\\games\\DolphinEmulator\\etc\\" # personal local custom
 ]
 # grid configuration for spatial shuffle compatibility
-GRID_DIVISOR = 4  # validate dimensions are divisible by 4 for 4x4 grid
+GRID_DIVISOR = 8  # validate dimensions are divisible by 8 for 8x8 grid
 
 # --- Helper Functions --- #
 
@@ -47,7 +47,7 @@ def crop_to_divisible(img, divisor=GRID_DIVISOR) :
     return img_cropped, new_width, new_height, True
 
 def validate_and_crop_image(image_path) :
-    # open and validate an image, cropping if necessary to ensure dimensions are divisible by GRID_DIVISOR (default @ 4)
+    # open and validate an image, cropping if necessary to ensure dimensions are divisible by GRID_DIVISOR (default @ 8)
     # Returns : (Image object, was_cropped, original_dimensions, new_dimensions)
     
     # open the image
@@ -210,4 +210,4 @@ if __name__ == "__main__" :
         encrypt_image_to_text(img_path, os.path.join(folder_path, out))
     
     print("\nAll images within folder encrypted")
-    print("Note: Images cropped to ensure compatibility with 4x4 spatial shuffle")
+    print("Note: Images cropped to ensure compatibility with 8x8 spatial shuffle")

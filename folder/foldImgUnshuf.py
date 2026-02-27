@@ -33,16 +33,20 @@ CHAR_SHUFFLE_MAP = {
 CHAR_UNSHUFFLE_MAP = {v: k for k, v in CHAR_SHUFFLE_MAP.items()}
 
 # grid configuration (MUST match shuffle configuration)
-GRID_ROWS = 4    # num of vertical slices
-GRID_COLS = 4    # num of horizontal slices
-TOTAL_SLICES = GRID_ROWS * GRID_COLS  # 16 for 4x4 (at the moment)
+GRID_ROWS = 8    # num of vertical slices
+GRID_COLS = 8    # num of horizontal slices
+TOTAL_SLICES = GRID_ROWS * GRID_COLS  # 64 for 8x8
 
 # spatial permutation (same as shuffle)
 SPATIAL_PERMUTATION = [
-    12, 5, 9, 0,   # original permutation from shuffle
-    14, 3, 8, 15,
-    1, 10, 6, 13,
-    7, 2, 11, 4
+     0, 13, 26, 39, 52,  1, 14, 27,   # row 0
+    40, 53,  2, 15, 28, 41, 54,  3,   # row 1
+    16, 29, 42, 55,  4, 17, 30, 43,   # row 2
+    56,  5, 18, 31, 44, 57,  6, 19,   # row 3
+    32, 45, 58,  7, 20, 33, 46, 59,   # row 4
+     8, 21, 34, 47, 60,  9, 22, 35,   # row 5
+    48, 61, 10, 23, 36, 49, 62, 11,   # row 6
+    24, 37, 50, 63, 12, 25, 38, 51    # row 7
 ]
 
 # calculate inverse permutation for unshuffling

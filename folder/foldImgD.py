@@ -1,6 +1,6 @@
 # --- foldImgD.py --- #
 # decrypts .txt(s) into images (specific format) within same directory of folder
-# Now validates that decrypted dimensions are divisible by 4 for compatibility
+# Now validates that decrypted dimensions are divisible by 8 for compatibility
 
 # --- Imports --- #
 import os
@@ -17,7 +17,7 @@ VALID_DIRECTORIES = [
     "C:\\Users\\davis\\OneDrive\\Desktop\\everything\\games\\DolphinEmulator\\etc\\" # personal local custom
 ]
 # grid configuration for validation
-GRID_DIVISOR = 4  # validate dimensions are divisible by 4
+GRID_DIVISOR = 8  # validate dimensions are divisible by 8
 
 # --- Helper Functions --- #
 
