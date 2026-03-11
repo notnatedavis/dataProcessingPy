@@ -44,8 +44,10 @@ dataProcessingPy/
     - `indImgD.py`
     - `indImgE.py`
 - vid/
-    - `indVidE.py`
-    - `indVidD.py`
+    - `foldVidShuf.py`
+    - `foldVidUnshuf.py`
+    - `txtToVideo.py`
+    - `videoToTxt.py`
 - `.gitignore`
 - `ReadMe.md`
 
