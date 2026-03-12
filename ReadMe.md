@@ -34,12 +34,11 @@ update
 ## Project-Structure
 
 dataProcessingPy/
-- folder/
+- img/
     - `foldImgD.py`
     - `foldImgE.py`
     - `foldImgShuf.py`
     - `foldImgUnshuf.py`
-- img/
     - `imgTemplate.py`
     - `indImgD.py`
     - `indImgE.py`
@@ -49,6 +48,8 @@ dataProcessingPy/
     - `txtToVideo.py`
     - `videoToTxt.py`
 - `.gitignore`
+- `common.py`
+- `config.json`
 - `ReadMe.md`
 
 ## Additional-Info

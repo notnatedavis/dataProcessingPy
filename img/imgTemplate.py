@@ -1,49 +1,30 @@
 # --- imgTemplate.py --- #
-# select an img, pass ratios to crop, process (draw lines), return (overwrite)
+# Template for processing a single image: crop to ratio, draw grid lines, save as new file
 
-#  notes : I want to clean up comments + prints + format
+# ----- Imports ----- #
 
-# --- Imports --- #
-from PIL import Image, ImageDraw
+import sys
 import os
-import re
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# Hardcoded variables
-# location of img(s)
-VALID_DIRECTORIES = [
-    "D:\\",  # Windows Ejectable Drive
-    "/run/media/User/PERSONAL3",  # Linux (Ejectable Drive)
-    "/Volumes/PERSONAL3",  # Mac (Ejectable Drive)
+import argparse
+import logging
+from PIL import Image, ImageDraw
+import common
 
-    "/Volumes/Macintosh HD/Users/User/Directory",  # Mac (Blank)
-    "C:\\Users\\User\\OneDrive\\Desktop\\directory\\", # Windows (Blank)
+# ----- Helper Functions ----- #
 
-    "/Users/whoshotnate/Desktop/everything/games/DolphinEmulator/etc", # local custom
-    "C:\\Users\\davis\\OneDrive\\Desktop\\everything\\games\\DolphinEmulator\\etc\\"  # local custom
-]
-
-# --- Helper Functions --- #
-
-def natural_sort_key(s) :
-    # function for natural sorting
-    # Ex. ['a10.jpg', 'a2.jpg'] -> ['a2.jpg', 'a10.jpg']
-    return [int(part) if part.isdigit() else part.lower() 
-            for part in re.split('([0-9]+)', s)]
-
-def crop_img(image, ratio="1:1") :
+def crop_img(image: Image.Image, ratio: str = "1:1") -> Image.Image : 
+    # Crop image to given aspect ratio (centered)
     width, height = image.size
 
-    if ratio == "1:1" : # square crop (centered)
+    if ratio == "1:1" :
         side = min(width, height)
-
         left = (width - side) // 2
         top = (height - side) // 2
-
         right = left + side
         bottom = top + side
-
     elif ratio == "4:3" :
-        # rectangle crop (centered)
         target_ratio = 4 / 3
         if width / height > target_ratio :
             new_width = int(height * target_ratio)
@@ -57,165 +38,101 @@ def crop_img(image, ratio="1:1") :
             left = 0
             right = width
             bottom = top + new_height
-
     else :
-        print("Invalid ratio. Defaulting to 1:1.")
+        logging.warning(f"Unknown ratio '{ratio}', defaulting to 1:1.")
         return crop_img(image, "1:1")
 
     return image.crop((left, top, right, bottom))
 
-def draw_lines(image, color) :
-    draw = ImageDraw.Draw(image) # create a drawing context
+def draw_lines(image: Image.Image, color: str = "red") -> Image.Image :
+    # Draw red (major) and yellow (minor) grid lines on the image
+    draw = ImageDraw.Draw(image)
     width, height = image.size
-    
-    # calculate the positions for the lines
-    quarter_width = width / 4
-    quarter_height = height / 4
 
-    # draw three horizontal lines at 1/4, 2/4, and 3/4 of the height
-    for i in range(1, 4):
-        y = int(quarter_height * i)
+    # Major lines at quarters
+    qw = width / 4
+    qh = height / 4
+    for i in range(1, 4) :
+        y = int(qh * i)
         draw.line((0, y, width, y), fill=color, width=1)
-
-    # draw three vertical lines at 1/4, 2/4, and 3/4 of the width
-    for i in range(1, 4):
-        x = int(quarter_width * i)
+        x = int(qw * i)
         draw.line((x, 0, x, height), fill=color, width=1)
 
-    # calculate the positions for the yellow lines (midpoints between red lines)
-    eighth_width = width / 8
-    eighth_height = height / 8
-
-    # draw yellow horizontal lines at 1/8, 3/8, 5/8, and 7/8 of the height
-    for i in range(1, 8, 2):
-        y = int(eighth_height * i)
+    # Minor lines at eighths
+    ew = width / 8
+    eh = height / 8
+    for i in range(1, 8, 2) :
+        y = int(eh * i)
         draw.line((0, y, width, y), fill=color, width=1)
-
-    # draw yellow vertical lines at 1/8, 3/8, 5/8, and 7/8 of the width
-    for i in range(1, 8, 2):
-        x = int(eighth_width * i)
+        x = int(ew * i)
         draw.line((x, 0, x, height), fill=color, width=1)
-    
+
     return image
 
-# --- Main Entry Point --- #
+# ----- Main ----- #
+
+def main() :
+    parser = argparse.ArgumentParser(description="Crop an image to a ratio and draw grid lines.")
+    parser.add_argument('--dir', help='Base directory path')
+    parser.add_argument('--folder', help='Folder name inside base directory')
+    parser.add_argument('--file', help='Image filename (optional, will prompt if not given)')
+    parser.add_argument('--ratio', choices=['1:1', '4:3'], default='1:1', help='Aspect ratio')
+    parser.add_argument('--color', default='red', help='Line color (any PIL color name)')
+    parser.add_argument('--prefix', default='XXX', help='Prefix for output filename')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output')
+    args = parser.parse_args()
+
+    common.setup_logging(args.verbose)
+
+    if args.dir and args.folder :
+        base_dir = args.dir
+        folder_path = os.path.join(base_dir, args.folder)
+        if not os.path.isdir(folder_path) :
+            logging.error(f"Folder not found: {folder_path}")
+            return
+    else :
+        try :
+            base_dir, folder_path = common.select_directory_and_folder(purpose="select image folder")
+        except Exception as e :
+            logging.error(e)
+            return
+
+    # Find image files (only .jpg for this template)
+    image_files = [f for f in os.listdir(folder_path)
+                   if f.lower().endswith('.jpg') and not f.startswith('.')]
+    image_files.sort(key=common.natural_sort_key)
+
+    if not image_files :
+        logging.error("No .jpg files found in folder.")
+        return
+
+    if args.file :
+        if args.file in image_files :
+            selected = args.file
+        else :
+            logging.error(f"File '{args.file}' not found.")
+            return
+    else :
+        print("\nAvailable .jpg files:")
+        for i, f in enumerate(image_files):
+            print(f"{i+1}. {f}")
+        try :
+            choice = int(input("Enter file number: ")) - 1
+            selected = image_files[choice]
+        except (ValueError, IndexError):
+            logging.error("Invalid selection.")
+            return
+
+    image_path = os.path.join(folder_path, selected)
+
+    # Load, crop, draw, save
+    with Image.open(image_path) as img :
+        cropped = crop_img(img, args.ratio)
+        final = draw_lines(cropped, args.color)
+        output_filename = f"{args.prefix}{selected}"
+        output_path = os.path.join(folder_path, output_filename)
+        final.save(output_path)
+        logging.info(f"Image saved as: {output_path}")
 
 if __name__ == "__main__" :
-
-    # 1. Directory Selection
-    existing_dirs = [d for d in IMG_DIRECTORIES if os.path.exists(d)]
-
-    if not existing_dirs :
-        print("ERROR: No valid directories found from the hardcoded list.")
-        exit()
-
-    print("\nAvailable base directories:")
-    for i, directory in enumerate(existing_dirs) :
-        print(f"{i+1}. {directory}")
-
-    try :
-        dir_choice = int(input("\nSelect base directory number: ")) - 1
-        if dir_choice < 0 or dir_choice >= len(existing_dirs):
-            raise ValueError
-        base_dir = existing_dirs[dir_choice]
-    except ValueError :
-        print("Invalid directory selection.")
-        exit()
-
-    # 2. Folder Selection
-    folders = [f for f in os.listdir(base_dir)
-               if os.path.isdir(os.path.join(base_dir, f))]
-    folders.sort(key=natural_sort_key)
-
-    if not folders :
-        print("No folders found in directory.")
-        exit()
-
-    print("\nAvailable folders:")
-    for i, foldername in enumerate(folders):
-        print(f"{i+1}. {foldername}")
-
-    try :
-        selection = int(input("\nEnter folder number: ")) - 1
-        if selection < 0 or selection >= len(folders):
-            raise ValueError
-        
-    except ValueError :
-        print("Invalid selection.")
-        exit()
-
-    selected_folder = folders[selection]
-    folder_path = os.path.join(base_dir, selected_folder)
-
-    # 3. File Selection (JPG only)
-    image_files = [f for f in os.listdir(folder_path)
-                   if f.lower().endswith('.jpg')]
-    image_files.sort(key=natural_sort_key)
-
-    if not image_files:
-        print("No image (.jpg) files found in directory.")
-        exit()
-
-    print("\nAvailable image files:")
-    for i, filename in enumerate(image_files):
-        print(f"{i+1}. {filename}")
-
-    try:
-        selection = int(input("\nEnter image number: ")) - 1
-        if selection < 0 or selection >= len(image_files):
-            raise ValueError
-    except ValueError:
-        print("Invalid selection.")
-        exit()
-
-    selected_file = image_files[selection]
-    image_path = os.path.join(folder_path, selected_file)
-
-    # 4. Aspect Ratio Selection
-    print("\nSelect crop ratio:")
-    print("1. Square (1:1)")
-    print("2. Rectangle (4:3)")
-
-    try :
-        ratio_choice = int(input("Choice: "))
-        if ratio_choice == 1 :
-            ratio = "1:1"
-        elif ratio_choice == 2 :
-            ratio = "4:3"
-        else :
-            raise ValueError
-        
-    except ValueError :
-        print("Invalid ratio selected. Defaulting to 1:1.")
-        ratio = "1:1"
-
-    # 4.5 Line Color Selection
-    color_options = {
-        1: "red",
-        2: "blue",
-        3: "green",
-        4: "yellow",
-        5: "white",
-        6: "black",
-        7: "purple",
-        8: "orange"
-    }
-
-    print("\nSelect line color:")
-    for key, value in color_options.items():
-        print(f"{key}. {value}")
-
-    try :
-        color_choice = int(input("Choice: "))
-        color = color_options.get(color_choice, "red")
-    except ValueError :
-        print("Invalid color selected. Defaulting to red.")
-        color = "red"
-
-    # 5. Load, Crop, Draw, and Save
-    with Image.open(image_path) as img :
-        cropped = crop_img(img, ratio)
-        final_image = draw_lines(cropped, color)
-        output_path = os.path.join(folder_path, f"XXX{selected_file}")
-        final_image.save(output_path)
-        print(f"\nImage saved as: {output_path}")
+    main()

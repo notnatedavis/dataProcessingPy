@@ -1,5 +1,5 @@
-# --- indImgE.py --- #
-# Encrypts a single image to a .txt file, cropping dimensions if necessary.
+# ----- foldImgE.py ----- #
+# Encrypts all images in a folder to .txt files, cropping if needed
 
 # ----- Imports ----- #
 
@@ -15,17 +15,20 @@ import common
 # ----- Helper Functions ----- #
 
 def encrypt_image_to_text(image_path: str, output_text_path: str) -> None :
-    # Convert an image to encrypted text, cropping dimensions if needed
+    # Convert an image to encrypted text, cropping dimensions if necessary
     img = Image.open(image_path)
+    original_format = img.format
     if img.mode != 'RGB' :
         img = img.convert('RGB')
 
     orig_w, orig_h = img.size
     new_w, new_h = common.crop_to_divisible(orig_w, orig_h)
 
+    cropped = False
     if (new_w, new_h) != (orig_w, orig_h) :
         # Crop from bottom-right
         img = img.crop((0, 0, new_w, new_h))
+        cropped = True
         logging.info(f"  Cropped: {orig_w}x{orig_h} → {new_w}x{new_h}")
 
     width, height = new_w, new_h
@@ -39,15 +42,14 @@ def encrypt_image_to_text(image_path: str, output_text_path: str) -> None :
             f.write("\n")
 
     os.remove(image_path)
-    logging.info(f"Encrypted to: {output_text_path}")
+    logging.info(f"Encrypted to: {os.path.basename(output_text_path)}")
 
 # ----- Main ----- #
 
 def main() :
-    parser = argparse.ArgumentParser(description="Encrypt a single image to a .txt file.")
+    parser = argparse.ArgumentParser(description="Encrypt all images in a folder to .txt files.")
     parser.add_argument('--dir', help='Base directory path')
     parser.add_argument('--folder', help='Folder name inside base directory')
-    parser.add_argument('--file', help='Image filename (optional, will prompt if not given)')
     parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output')
     args = parser.parse_args()
 
@@ -73,31 +75,18 @@ def main() :
     image_files.sort(key=common.natural_sort_key)
 
     if not image_files :
-        logging.error("No image files found in folder.")
+        logging.error("No image files found.")
         return
 
-    if args.file :
-        if args.file in image_files :
-            selected = args.file
-        else :
-            logging.error(f"File '{args.file}' not found in folder.")
-            return
-    else :
-        print("\nAvailable image files:")
-        for i, f in enumerate(image_files):
-            print(f"{i+1}. {f}")
-        try :
-            choice = int(input("Enter file number to encrypt: ")) - 1
-            selected = image_files[choice]
-        except (ValueError, IndexError) :
-            logging.error("Invalid selection.")
-            return
+    logging.info(f"Grid divisor: {common.GRID_DIVISOR}")
+    logging.info("Starting encryption...\n")
 
-    image_path = os.path.join(folder_path, selected)
-    output_filename = os.path.splitext(selected)[0] + ".txt"
-    output_path = os.path.join(folder_path, output_filename)
+    for img_file in image_files :
+        img_path = os.path.join(folder_path, img_file)
+        out = os.path.splitext(img_file)[0] + ".txt"
+        encrypt_image_to_text(img_path, os.path.join(folder_path, out))
 
-    encrypt_image_to_text(image_path, output_path)
+    logging.info("All images encrypted. (Cropped where necessary)")
 
 if __name__ == "__main__" :
     main()

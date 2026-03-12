@@ -1,6 +1,6 @@
-# --- indImgD.py --- #
-# Decrypts a single encrypted .txt file to an image (JPEG)
-# Uses common module
+# ----- foldImgD.py ----- #
+# Decrypts all .txt files in a folder to images (JPEG)
+# Uses common.py module
 
 # ----- Imports ----- #
 
@@ -23,9 +23,11 @@ def decrypt_text_to_image(text_path: str, output_image_path: str) -> None :
     height = len(lines)
     width = len(lines[0].strip().split())
 
-    # Validate dimensions (optional, just info)
+    # Validate dimensions
     valid, msg = common.validate_dimensions(width, height)
     logging.info(f"  {msg}")
+    if not valid :
+        logging.warning("Image may not be compatible with spatial shuffle.")
 
     img = Image.new('RGB', (width, height))
     pixels = img.load()
@@ -38,15 +40,14 @@ def decrypt_text_to_image(text_path: str, output_image_path: str) -> None :
 
     img.save(output_image_path, quality=100)
     os.remove(text_path)
-    logging.info(f"Decrypted to: {output_image_path}")
+    logging.info(f"Decrypted to: {os.path.basename(output_image_path)}")
 
 # ----- Main ----- #
 
 def main() :
-    parser = argparse.ArgumentParser(description="Decrypt a single .txt file to an image.")
+    parser = argparse.ArgumentParser(description="Decrypt all .txt files in a folder to images.")
     parser.add_argument('--dir', help='Base directory path')
     parser.add_argument('--folder', help='Folder name inside base directory')
-    parser.add_argument('--file', help='Text filename (optional, will prompt if not given)')
     parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output')
     args = parser.parse_args()
 
@@ -65,38 +66,24 @@ def main() :
             logging.error(e)
             return
 
-    # Find .txt files
+    # Find all .txt files
     text_files = [f for f in os.listdir(folder_path)
                   if f.lower().endswith('.txt') and not f.startswith('.')]
     text_files.sort(key=common.natural_sort_key)
 
     if not text_files :
-        logging.error("No .txt files found in folder.")
+        logging.error("No text files found.")
         return
 
-    # If file specified, check it exists
-    if args.file :
-        if args.file in text_files :
-            selected = args.file
-        else :
-            logging.error(f"File '{args.file}' not found in folder.")
-            return
-    else :
-        print("\nAvailable .txt files:")
-        for i, f in enumerate(text_files) :
-            print(f"{i+1}. {f}")
-        try : 
-            choice = int(input("Enter file number to decrypt: ")) - 1
-            selected = text_files[choice]
-        except (ValueError, IndexError) :
-            logging.error("Invalid selection.")
-            return
+    logging.info(f"Grid divisor: {common.GRID_DIVISOR}")
+    logging.info("Starting decryption...\n")
 
-    text_path = os.path.join(folder_path, selected)
-    output_filename = os.path.splitext(selected)[0] + ".jpg"
-    output_path = os.path.join(folder_path, output_filename)
+    for txt in text_files :
+        txt_path = os.path.join(folder_path, txt)
+        out = os.path.splitext(txt)[0] + ".jpg"
+        decrypt_text_to_image(txt_path, os.path.join(folder_path, out))
 
-    decrypt_text_to_image(text_path, output_path)
+    logging.info("All .txt files decrypted.")
 
 if __name__ == "__main__" :
     main()

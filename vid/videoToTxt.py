@@ -1,214 +1,151 @@
-# --- videoToTxt.py --- #
-# deconstructs a video into ecrypted text files (one per frame)
+# ----- videoToTxt.py ----- #
+# Deconstructs a video into encrypted text frames, cropping each frame to divisible dimensions
 
-# notes : 
-# I want to clean up comments + prints + format
-# - fix naming of processed files
-# - update corresponding txtToVideo.py
+# ----- Imports ----- #
 
-# --- Imports --- #
+import sys
 import os
-import re
-from PIL import Image # not needed ?
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import argparse
+import logging
 import cv2
 import numpy as np
+import common
+try :
+    from tqdm import tqdm
+except ImportError :
+    tqdm = None
 
-# Hardcoded variables
-VALID_DIRECTORIES = [
-    "D:\\",  # Windows Ejectable Drive
-    "/run/media/User/PERSONAL3",  # Linux (Ejectable Drive)
-    "/Volumes/PERSONAL3",  # Mac (Ejectable Drive)
+# ----- Helper Functions ----- #
 
-    "/Volumes/Macintosh HD/Users/User/Directory",  # Mac (Blank)
-    "C:\\Users\\User\\OneDrive\\Desktop\\directory\\", # Windows (Blank)
-
-    "/Users/whoshotnate/Desktop/everything/games/DolphinEmulator/etc", # local custom
-    "C:\\Users\\davis\\OneDrive\\Desktop\\everything\\games\\DolphinEmulator\\etc\\"  # local custom
-]
-
-# --- Helper Functions --- #
-
-def natural_sort_key(s) :
-    # Function for natural sorting
-    
-    return [int(part) if part.isdigit() else part.lower() 
-            for part in re.split('([0-9]+)', s)]
-
-def value_to_encrypted_string(value) :
-    # converts a RGB value to encrypted string (specific format)
-    # encrypts a single RGB value (0-255) to 2-character string
-    
-    char = chr(ord('A') + (value // 10))
-    digit = str(value % 10)
-    
-    return f"{char}{digit}"
-
-def rgb_to_encrypted_string(r, g, b) :
-    # converts a RGB tuple to encrypted string
-    
-    red_str = value_to_encrypted_string(r)
-    green_str = value_to_encrypted_string(g)
-    blue_str = value_to_encrypted_string(b)
-    
-    return f"{red_str}{green_str}{blue_str}"
-
-def process_frame(frame, frame_index, output_folder) :
-    # process a single frame and save as encrypted text file
-    # returns path to generated .txt file
-
-    # 1. convert from BGR to RGB
+def process_frame(frame: np.ndarray, frame_index: int, output_folder: str) -> None :
+    # Convert a single frame (BGR) to encrypted text and save
+    # Convert to RGB
     frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    height, width, _ = frame_rgb.shape
-    
-    # 2. create output filename
-    output_filename = f"frame_{frame_index:04d}.txt"
-    output_path = os.path.join(output_folder, output_filename)
-    
-    # 3. write encrypted pixel data
-    with open(output_path, 'w') as f :
-        for y in range(height) :
-            for x in range(width) :
+    h, w, _ = frame_rgb.shape
+
+    # Crop to divisible dimensions if needed
+    new_w, new_h = common.crop_to_divisible(w, h)
+    if (new_w, new_h) != (w, h) :
+        # Crop from bottom-right
+        frame_rgb = frame_rgb[:new_h, :new_w]
+        logging.debug(f"Frame {frame_index}: cropped {w}x{h} → {new_w}x{new_h}")
+
+    out_filename = f"frame_{frame_index:04d}.txt"
+    out_path = os.path.join(output_folder, out_filename)
+
+    with open(out_path, 'w') as f :
+        for y in range(new_h) :  
+            for x in range(new_w) :
                 r, g, b = frame_rgb[y, x]
-                encrypted_pixel = rgb_to_encrypted_string(r, g, b)
-                f.write(encrypted_pixel + ' ')
-                
+                enc = common.rgb_to_encrypted_string(r, g, b)
+                f.write(enc + ' ')
             f.write("\n")
-    
-    return output_path
 
-def video_to_frames(video_path, output_folder) :
-    # extract frames from a video and save as encrypted text files
-
-    # 0.1 create output directory if needed
+def video_to_frames(video_path: str, output_folder: str) -> int :
+    # Extract frames, crop, and save as encrypted text
     os.makedirs(output_folder, exist_ok=True)
 
-    # 0.2 declare variable for video capture
     cap = cv2.VideoCapture(video_path)
-    if not cap.isOpened( ):
-        raise ValueError("error opening video file")
-    
-    # 1. get video properties
+    if not cap.isOpened():
+        raise ValueError("Could not open video file.")
+
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = cap.get(cv2.CAP_PROP_FPS)
-    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    
-    print(f"Processing video: {os.path.basename(video_path)}") # optional
-    print(f"Resolution: {width}x{height}, FPS: {fps:.2f}, Frames: {frame_count}") # optional
-    
-    # 2. save metadata
-    metadata_path = os.path.join(output_folder, "metadata.txt")
-    with open(metadata_path, 'w') as f :
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+    logging.info(f"Video: {os.path.basename(video_path)}")
+    logging.info(f"Resolution: {width}x{height}, FPS: {fps:.2f}, Frames: {total_frames}")
+
+    # Save metadata (original dimensions, FPS)
+    meta_path = os.path.join(output_folder, "metadata.txt")
+    with open(meta_path, 'w') as f:
         f.write(f"{width},{height},{fps}")
-    
-    # 3. process each frame for all frames in 'cap'
+
     success, frame = cap.read()
     frame_index = 0
-    
+
+    iterator = None
+    if tqdm and total_frames > 0 :
+        iterator = tqdm(total=total_frames, desc="Extracting frames", unit="frame")
+
     while success :
-        output_path = process_frame(frame, frame_index, output_folder)
-        print(f"Processed frame {frame_index+1}/{frame_count} -> {os.path.basename(output_path)}") # optional
-        
-        # read next frame
-        success, frame = cap.read()
+        process_frame(frame, frame_index, output_folder)
         frame_index += 1
-    
-    cap.release() # resource cleanup
-    
-    print(f"\nVideo processing complete! {frame_index} frames saved to {output_folder}") # optional
-    
+        if iterator :
+            iterator.update(1)
+        success, frame = cap.read()
+
+    cap.release()
+    if iterator :
+        iterator.close()
+
+    logging.info(f"Saved {frame_index} frames to {output_folder}")
     return frame_index
 
-# --- Main Entry Point --- #
+# ----- Main ----- #
+
+def main() :
+    parser = argparse.ArgumentParser(description="Deconstruct video into encrypted text frames.")
+    parser.add_argument('--dir', help='Base directory path')
+    parser.add_argument('--folder', help='Folder containing the video file')
+    parser.add_argument('--video', help='Video filename (optional, will prompt if not given)')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output')
+    parser.add_argument('--no-progress', action='store_true', help='Disable progress bar')
+    args = parser.parse_args()
+
+    common.setup_logging(args.verbose)
+
+    if args.dir and args.folder :
+        base_dir = args.dir
+        folder_path = os.path.join(base_dir, args.folder)
+        if not os.path.isdir(folder_path) :
+            logging.error(f"Folder not found: {folder_path}")
+            return
+    else :
+        try :
+            base_dir, folder_path = common.select_directory_and_folder(purpose="select video folder")
+        except Exception as e :
+            logging.error(e)
+            return
+
+    # Find video files
+    video_files = [f for f in os.listdir(folder_path)
+                   if f.lower().endswith(('.mp4', '.avi', '.mov', '.mkv')) and not f.startswith('.')]
+    video_files.sort(key=common.natural_sort_key)
+
+    if not video_files :
+        logging.error("No video files found in folder.")
+        return
+
+    if args.video:
+        if args.video in video_files :
+            selected = args.video
+        else :
+            logging.error(f"Video '{args.video}' not found in folder.")
+            return
+    else :
+        print("\nAvailable video files:")
+        for i, f in enumerate(video_files):
+            print(f"{i+1}. {f}")
+        try :
+            choice = int(input("Select video number: ")) - 1
+            selected = video_files[choice]
+        except (ValueError, IndexError) :
+            logging.error("Invalid selection.")
+            return
+
+    video_path = os.path.join(folder_path, selected)
+    video_name = os.path.splitext(selected)[0]
+    output_folder = os.path.join(folder_path, f"{video_name}_frames")
+
+    try :
+        count = video_to_frames(video_path, output_folder)
+        logging.info(f"Successfully deconstructed {count} frames.")
+    except Exception as e :
+        logging.error(f"Error processing video: {e}")
 
 if __name__ == "__main__" :
-
-    # --- 1. Directory Selection --- #
-
-    existing_dirs = [d for d in VALID_DIRECTORIES if os.path.exists(d)]
-    if not existing_dirs :
-        print("ERROR: No valid directories found from the hardcoded list.")
-        exit()
-    
-    # Directory selection menu
-    print("\nAvailable base directories:")
-    for i, directory in enumerate(existing_dirs) :
-        print(f"{i+1}. {directory}")
-    
-    try :
-        dir_choice = int(input("\nSelect base directory number: ")) - 1
-        if dir_choice < 0 or dir_choice >= len(existing_dirs):
-            raise ValueError
-        base_dir = existing_dirs[dir_choice]
-    except ValueError :
-        print("Invalid directory selection.")
-        exit()
-
-    # --- 2. Folder Selection --- #
-
-    folders = [f for f in os.listdir(base_dir) 
-        if os.path.isdir(os.path.join(base_dir, f)) 
-        and not f.startswith('.')] 
-        # filters out *.files
-    folders.sort(key=natural_sort_key)
-    
-    if not folders :
-        print("No folders found in directory.")
-        exit()
-    
-    print("\nAvailable folders:")
-    for i, foldername in enumerate(folders) :
-        print(f"{i+1}. {foldername}")
-    
-    try :
-        selection = int(input("\nEnter folder number to process: ")) - 1
-        if selection < 0 or selection >= len(folders):
-            raise ValueError
-        selected_folder = folders[selection]
-        folder_path = os.path.join(base_dir, selected_folder)
-    except ValueError :
-        print("Invalid selection.")
-        exit()
-
-    # --- 3. Video File Selection --- #
-
-    video_files = [f for f in os.listdir(folder_path) 
-        if f.lower().endswith(('.mp4', '.avi', '.mov', '.mkv')) 
-        and not f.startswith('.')] 
-        # filters out *.files
-    video_files.sort(key=natural_sort_key)
-    
-    if not video_files :
-        print("No video files found in directory.")
-        exit()
-    
-    print("\nAvailable video files:")
-    for i, filename in enumerate(video_files):
-        print(f"{i+1}. {filename}")
-    
-    try :
-        selection = int(input("\nEnter file number to deconstruct: ")) - 1
-        if selection < 0 or selection >= len(video_files):
-            raise ValueError
-        selected_file = video_files[selection]
-        video_path = os.path.join(folder_path, selected_file)
-    except ValueError :
-        print("Invalid selection.")
-        exit()
-
-    # --- 4. Output Folder Setup --- #
-    
-    video_name = os.path.splitext(selected_file)[0]
-    output_folder = os.path.join(folder_path, f"{video_name}_frames")
-    
-    print(f"\nStarting video deconstruction...")
-    print(f"Input: {video_path}")
-    print(f"Output: {output_folder}")
-    
-    # process video
-    try :
-        frame_count = video_to_frames(video_path, output_folder)
-        print(f"Successfully deconstructed {frame_count} frames!")
-    except Exception as e :
-        print(f"Error processing video: {str(e)}")
+    main()
