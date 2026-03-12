@@ -1,9 +1,8 @@
-# --- foldVidShuf.py --- #
+# --- vid/foldVidShuf.py --- 
 # Applies character and spatial shuffle to all .txt files (video frames) in a folder
 # Now supports selecting a subfolder (e.g., *_frames) inside the chosen folder
 
-# ----- Imports ----- #
-
+# ----- Imports ----- 
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -17,8 +16,7 @@ try:
 except ImportError:
     tqdm = None
 
-# ----- Helper Functions ----- #
-
+# ----- Helper Functions ----- 
 def shuffle_text_file(text_path: str) -> None : 
     # Shuffle a single frame file
     with open(text_path, 'r') as f :
@@ -43,15 +41,16 @@ def shuffle_text_file(text_path: str) -> None :
     # Spatial shuffle (forced division)
     slices, dims, row_slices, col_slices = common.slice_image_data_forced(char_shuffled, total_rows, total_cols)
     permuted_slices = [slices[i] for i in common.SPATIAL_PERMUTATION]
-    shuffled_rows = common.reconstruct_image_from_slices_forced(permuted_slices, dims, row_slices, col_slices, inverse=False)
+    shuffled_rows = common.reconstruct_image_from_slices_forced(
+        permuted_slices, dims, row_slices, col_slices, inverse=False
+    )
 
     with open(text_path, 'w') as f :
         f.write('\n'.join(shuffled_rows))
 
     logging.info(f"Shuffled: {os.path.basename(text_path)}")
 
-# ----- Main ----- #
-
+# ----- Main ----- 
 def main() :
     parser = argparse.ArgumentParser(description="Shuffle all frame .txt files in a folder (supports subfolder selection).")
     parser.add_argument('--dir', help='Base directory path')

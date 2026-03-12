@@ -1,9 +1,8 @@
-# --- foldVidUnshuf.py --- #
+# --- vid/foldVidUnshuf.py --- 
 # Reverses character and spatial shuffle on all .txt files (video frames) in a folder
 # Now supports selecting a subfolder (e.g., *_frames) inside the chosen folder
 
-# ----- Imports ----- #
-
+# ----- Imports ----- 
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -17,8 +16,7 @@ try :
 except ImportError : 
     tqdm = None
 
-# ----- Helper Functions ----- #
-
+# ----- Helper Functions ----- 
 def unshuffle_text_file(text_path: str) -> None :
     # Unshuffle a single frame file
     with open(text_path, 'r') as f:
@@ -51,8 +49,7 @@ def unshuffle_text_file(text_path: str) -> None :
 
     logging.info(f"Unshuffled: {os.path.basename(text_path)}")
 
-# ----- Main ----- #
-
+# ----- Main ----- 
 def main() :
     parser = argparse.ArgumentParser(description="Unshuffle all frame .txt files in a folder (supports subfolder selection).")
     parser.add_argument('--dir', help='Base directory path')
