@@ -133,8 +133,13 @@ def select_subfolder(parent_folder: str, suffix: str = "", purpose: str = "proce
     except (ValueError, IndexError):
         raise ValueError("Invalid subfolder selection.")
     
-# ----- Encryption / Decryption ----- #
-
+    def crop_to_grid(orig_w, orig_h):
+        """Return largest dimensions <= original that are multiples of GRID_COLS and GRID_ROWS."""
+        new_w = orig_w - (orig_w % GRID_COLS)
+        new_h = orig_h - (orig_h % GRID_ROWS)
+        return new_w, new_h
+    
+# ----- Encryption / Decryption ----- 
 def value_to_encrypted_string(value: int) -> str :
     # Convert an RGB value (0-255) to a 2-character encrypted string
     char = chr(ord('A') + (value // 10))
