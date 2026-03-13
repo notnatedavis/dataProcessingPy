@@ -1,8 +1,8 @@
 # --- vid/foldVidShuf.py ---
 # Applies character and spatial shuffle to all .txt files (video frames) in a folder
-# Supports selecting a subfolder (e.g., *_frames) inside the chosen folder
+# Supports selecting a subfolder (e.g., *_frames) inside the chosen folder.
+# Includes robust error handling, dimension consistency checks, and slicing assertions.
 
-# ----- Imports -----
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -16,42 +16,80 @@ except ImportError:
     tqdm = None
 
 # ----- Helper Functions -----
-def shuffle_text_file(text_path: str, verbose: bool = False, use_tqdm: bool = False) -> None:
-    """Shuffle a single frame file."""
-    with open(text_path, 'r') as f:
-        lines = f.readlines()
+def shuffle_text_file(text_path: str, ref_dims: tuple = None, verbose: bool = False, use_tqdm: bool = False) -> tuple:
+    """
+    Shuffle a single frame file.
+    Returns the dimensions (rows, cols) of the frame for consistency checking.
+    Raises appropriate exceptions on failure.
+    """
+    try:
+        with open(text_path, 'r') as f:
+            lines = f.readlines()
+    except Exception as e:
+        raise IOError(f"Failed to read {text_path}: {e}")
 
+    # Clean and validate lines
     pixel_rows = [line.strip() for line in lines if line.strip()]
     if not pixel_rows:
-        if verbose:
-            logging.warning(f"Empty file: {os.path.basename(text_path)}")
-        return
+        raise ValueError(f"Empty file: {text_path}")
 
     total_rows = len(pixel_rows)
     total_cols = len(pixel_rows[0].split())
+
+    # Consistency check with previous frames (if any)
+    if ref_dims is not None:
+        if (total_rows, total_cols) != ref_dims:
+            raise ValueError(f"Dimension mismatch in {os.path.basename(text_path)}: "
+                             f"expected {ref_dims}, got ({total_rows}, {total_cols})")
+    else:
+        # First frame – store dimensions for later checks
+        ref_dims = (total_rows, total_cols)
+
     if verbose:
         logging.debug(f"Frame {os.path.basename(text_path)}: {total_rows}x{total_cols}")
 
-    # Character shuffle
+    # --- Character shuffle ---
     char_shuffled = []
     for row in pixel_rows:
         pixels = row.split()
+        # Validate each pixel length (should be 6)
+        for p in pixels:
+            if len(p) != 6:
+                raise ValueError(f"Invalid pixel string '{p}' in {text_path}")
         shuffled = [common.shuffle_pixel(p) for p in pixels]
         char_shuffled.append(' '.join(shuffled))
 
-    # Spatial shuffle (forced division)
-    slices, dims, row_slices, col_slices = common.slice_image_data_forced(char_shuffled, total_rows, total_cols)
+    # --- Spatial shuffle (forced division) ---
+    slices, dims, row_slices, col_slices = common.slice_image_data_forced(
+        char_shuffled, total_rows, total_cols
+    )
+    # Assertions to ensure slicing integrity
+    assert len(slices) == common.TOTAL_SLICES, \
+        f"Expected {common.TOTAL_SLICES} slices, got {len(slices)}"
+    assert len(dims) == common.TOTAL_SLICES, "Slice dimensions mismatch"
+    # Verify that the slices, when concatenated, would reconstruct original dimensions
+    total_slice_rows = sum(end - start for start, end in row_slices)
+    total_slice_cols = sum(end - start for start, end in col_slices)
+    assert total_slice_rows == total_rows, f"Row slices sum to {total_slice_rows}, expected {total_rows}"
+    assert total_slice_cols == total_cols, f"Col slices sum to {total_slice_cols}, expected {total_cols}"
+
+    # Apply permutation
     permuted_slices = [slices[i] for i in common.SPATIAL_PERMUTATION]
     shuffled_rows = common.reconstruct_image_from_slices_forced(
         permuted_slices, dims, row_slices, col_slices, inverse=False
     )
 
-    with open(text_path, 'w') as f:
-        f.write('\n'.join(shuffled_rows))
+    # Write back to the same file
+    try:
+        with open(text_path, 'w') as f:
+            f.write('\n'.join(shuffled_rows))
+    except Exception as e:
+        raise IOError(f"Failed to write shuffled data to {text_path}: {e}")
 
-    # Only log per‑file completion if verbose, or if no progress bar is shown
     if verbose or not use_tqdm:
         logging.info(f"Shuffled: {os.path.basename(text_path)}")
+
+    return ref_dims
 
 # ----- Main -----
 def main():
@@ -76,7 +114,7 @@ def main():
         try:
             base_dir, folder_path = common.select_directory_and_folder(purpose="shuffle frames")
         except Exception as e:
-            logging.error(e)
+            logging.error(f"Directory selection failed: {e}")
             return
 
     # --- Step 2: Determine subfolder containing the .txt files ---
@@ -86,11 +124,10 @@ def main():
             logging.error(f"Subfolder not found: {target_folder}")
             return
     else:
-        # Look for subfolders ending with '_frames' (common naming from videoToTxt)
         try:
             target_folder = common.select_subfolder(folder_path, suffix="_frames", purpose="shuffle frames")
         except Exception as e:
-            logging.error(e)
+            logging.error(f"Subfolder selection failed: {e}")
             return
 
     # --- Step 3: Find all .txt files in the target folder, EXCLUDING metadata.txt ---
@@ -113,11 +150,23 @@ def main():
     if use_tqdm:
         iterator = tqdm(text_files, desc="Shuffling frames", unit="file")
 
+    ref_dims = None
+    failed_files = []
+
     for txt_file in iterator:
         txt_path = os.path.join(target_folder, txt_file)
-        shuffle_text_file(txt_path, verbose=args.verbose, use_tqdm=use_tqdm)
+        try:
+            ref_dims = shuffle_text_file(txt_path, ref_dims, args.verbose, use_tqdm)
+        except Exception as e:
+            logging.error(f"Error processing {txt_file}: {e}")
+            failed_files.append(txt_file)
+            # Optionally continue or break? Here we continue to process others.
+            continue
 
-    logging.info("All frame files shuffled.")
+    if failed_files:
+        logging.warning(f"Completed with errors on {len(failed_files)} files: {failed_files}")
+    else:
+        logging.info("All frame files shuffled successfully.")
 
 if __name__ == "__main__":
     main()
