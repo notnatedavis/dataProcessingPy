@@ -30,20 +30,26 @@ def shuffle_text_file(text_path: str) -> None :
 
     total_rows = len(pixel_rows)
     total_cols = len(pixel_rows[0].split())
-    logging.debug(f"Processing {os.path.basename(text_path)}: {total_rows}x{total_cols}")
 
-    # Character shuffle
-    char_shuffled = []
-    for row in pixel_rows :
-        pixels = row.split()
-        shuffled = [common.shuffle_pixel(p) for p in pixels]
-        char_shuffled.append(' '.join(shuffled))
+    # Crop to multiple of GRID_ROWS and GRID_COLS
+    new_h, new_w = common.crop_to_divisible(total_rows, total_cols)
+    if new_h != total_rows or new_w != total_cols:
+        pixel_rows = [row[:new_w] for row in pixel_rows[:new_h]]
+        total_rows, total_cols = new_h, new_w
 
-    # Spatial shuffle (forced division)
-    slices, dims, row_slices, col_slices = common.slice_image_data_forced(char_shuffled, total_rows, total_cols)
-    # Apply permutation (simply reorder slices)
-    permuted_slices = [slices[i] for i in common.SPATIAL_PERMUTATION]
-    shuffled_rows = common.reconstruct_image_from_slices_forced(permuted_slices, dims, row_slices, col_slices, inverse=False)
+    # Slicing
+    slices, dims, row_slices, col_slices = common.slice_image_data_forced(pixel_rows, total_rows, total_cols)
+
+    # Permute using forward map
+    permuted_slices = [None] * common.TOTAL_SLICES
+    for orig_idx in range(common.TOTAL_SLICES):
+        target_idx = common.SPATIAL_PERMUTATION[orig_idx]   # forward map
+        permuted_slices[target_idx] = slices[orig_idx]
+
+    # Reconstruct
+    shuffled_rows = common.reconstruct_image_from_slices_forced(
+       permuted_slices, dims, row_slices, col_slices, inverse=False
+    )
 
     with open(text_path, 'w') as f :
         f.write('\n'.join(shuffled_rows))

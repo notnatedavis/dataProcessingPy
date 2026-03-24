@@ -31,25 +31,29 @@ def unshuffle_text_file(text_path: str) -> None :
 
     total_rows = len(pixel_rows)
     total_cols = len(pixel_rows[0].split())
-    logging.debug(f"Processing {os.path.basename(text_path)}: {total_rows}x{total_cols}")
 
-    # --- Spatial unshuffle (forced division) ---
-    # Slice the current (shuffled) image data
+    # Crop to multiple of GRID_ROWS and GRID_COLS (should match the shuffled image)
+    new_h, new_w = common.crop_to_divisible(total_rows, total_cols)
+    if new_h != total_rows or new_w != total_cols:
+        pixel_rows = [row[:new_w] for row in pixel_rows[:new_h]]
+        total_rows, total_cols = new_h, new_w
+
+    # Slicing
     slices, dims, row_slices, col_slices = common.slice_image_data_forced(pixel_rows, total_rows, total_cols)
-    # Reconstruct using inverse permutation to restore original slice order
-    spatially_unshuffled = common.reconstruct_image_from_slices_forced(
-        slices, dims, row_slices, col_slices, inverse=True
+
+    # Unpermute using backward map
+    original_slices = [None] * common.TOTAL_SLICES
+    for shuffled_idx in range(common.TOTAL_SLICES):
+        orig_idx = common.SPATIAL_INVERSE_PERMUTATION[shuffled_idx]
+        original_slices[orig_idx] = slices[shuffled_idx]
+
+    # Reconstruct
+    unshuffled_rows = common.reconstruct_image_from_slices_forced(
+        original_slices, dims, row_slices, col_slices, inverse=False
     )
 
-    # --- Character unshuffle ---
-    fully_unshuffled = []
-    for row in spatially_unshuffled:
-        pixels = row.split()
-        unshuffled = [common.unshuffle_pixel(p) for p in pixels]
-        fully_unshuffled.append(' '.join(unshuffled))
-
     with open(text_path, 'w') as f :
-        f.write('\n'.join(fully_unshuffled))
+        f.write('\n'.join(unshuffled_rows))
 
     logging.info(f"Unshuffled: {os.path.basename(text_path)}")
 
