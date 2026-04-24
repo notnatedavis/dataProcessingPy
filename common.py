@@ -1,5 +1,6 @@
 # ----- common.py ----- #
 # Shared constants, helpers, and configuration loader for the dataProcessingPy project
+# Hardcoded config
 
 # ----- Imports ----- #
 
@@ -8,7 +9,6 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import re
-import json
 import logging
 from typing import List, Tuple, Any, Dict, Optional
 
@@ -23,46 +23,26 @@ def setup_logging(verbose: bool = False) -> None :
         datefmt='%Y-%m-%d %H:%M:%S'
     )
 
-# ----- Configuration Loading ----- #
-
-DEFAULT_CONFIG_PATH = os.path.join(os.path.dirname(__file__), 'config.json')
-
-def load_config(config_path: str = DEFAULT_CONFIG_PATH) -> Dict[str, Any] :
-    # Load configuration from JSON file
-    try :
-        with open(config_path, 'r') as f :
-            config = json.load(f)
-        return config
-    except FileNotFoundError :
-        logging.warning(f"Config file {config_path} not found. Using defaults.")
-        return {}
-    except json.JSONDecodeError :
-        logging.error(f"Config file {config_path} is invalid JSON. Using defaults.")
-        return {}
-
 # ----- Global Constants (loaded from config) ----- #
 
-_config = load_config()
-
-VALID_DIRECTORIES : List[str] = _config.get('VALID_DIRECTORIES', [
+VALID_DIRECTORIES : List[str] = [
     "D:\\",
-    "/run/media/User/PERSONAL3",
-    "/Volumes/PERSONAL3",
-    "/Volumes/Macintosh HD/Users/User/Directory",
+    "/run/media/User/PERSONAL3", 
+    "/Volumes/PERSONAL3", # specific usb macos
+    "/Volumes/Macintosh HD/Users/User/Directory", # blank macos
     "C:\\Users\\User\\OneDrive\\Desktop\\directory\\",
     "/Users/whoshotnate/Desktop/everything/games/DolphinEmulator/etc",
-    "C:\\Users\\davis\\OneDrive\\Desktop\\everything\\games\\DolphinEmulator\\etc\\"
-])
-
-IGNORE: set = set(_config.get('IGNORE', ["System Volume Information"]))
-
-GRID_DIVISOR: int = _config.get('GRID_DIVISOR', 8)
-GRID_ROWS: int = _config.get('GRID_ROWS', 8)
-GRID_COLS: int = _config.get('GRID_COLS', 8)
+    "C:\\Users\\davis\\OneDrive\\Desktop\\everything\\games\\DolphinEmulator\\etc\\",
+    "C:\\Users\\ASUS\\Desktop\\everything\\photos\\draw" # personal win pc
+]
+IGNORE: set = {"System Volume Information"}
+GRID_DIVISOR: int = 8
+GRID_ROWS: int = 8
+GRID_COLS: int = 8
 TOTAL_SLICES: int = GRID_ROWS * GRID_COLS
 
 # Spatial permutation (generated as (i*13) % 64)
-SPATIAL_PERMUTATION: List[int] = _config.get('SPATIAL_PERMUTATION', [
+SPATIAL_PERMUTATION: List[int] = [
      0, 13, 26, 39, 52,  1, 14, 27,
     40, 53,  2, 15, 28, 41, 54,  3,
     16, 29, 42, 55,  4, 17, 30, 43,
@@ -71,7 +51,7 @@ SPATIAL_PERMUTATION: List[int] = _config.get('SPATIAL_PERMUTATION', [
      8, 21, 34, 47, 60,  9, 22, 35,
     48, 61, 10, 23, 36, 49, 62, 11,
     24, 37, 50, 63, 12, 25, 38, 51
-])
+]
 
 # Inverse permutation (for unshuffle)
 SPATIAL_INVERSE_PERMUTATION: List[int] = [0] * TOTAL_SLICES
@@ -79,19 +59,19 @@ for orig_pos, target_pos in enumerate(SPATIAL_PERMUTATION) :
     SPATIAL_INVERSE_PERMUTATION[target_pos] = orig_pos
 
 # Character shuffle map
-CHAR_SHUFFLE_MAP: Dict[str, str] = _config.get('CHAR_SHUFFLE_MAP', {
+CHAR_SHUFFLE_MAP: Dict[str, str] = {
     'A': 'M', 'B': 'T', 'C': 'Z', 'D': 'P', 'E': 'K',
     'F': 'A', 'G': 'R', 'H': 'U', 'I': 'X', 'J': 'B',
     'K': 'L', 'L': 'C', 'M': 'W', 'N': 'E', 'O': 'S',
     'P': 'D', 'Q': 'G', 'R': 'Y', 'S': 'V', 'T': 'O',
     'U': 'Q', 'V': 'I', 'W': 'N', 'X': 'F', 'Y': 'H',
     'Z': 'J'
-})
+}
 
 # Inverse character map
 CHAR_UNSHUFFLE_MAP: Dict[str, str] = {v: k for k, v in CHAR_SHUFFLE_MAP.items()}
 
-ROUNDING_MODE: str = _config.get('ROUNDING_MODE', 'floor')  # 'floor', 'ceil', 'round'
+ROUNDING_MODE: str = 'floor'   # 'floor', 'ceil', or 'round'
 
 # ----- Helper Functions ----- #
 

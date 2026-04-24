@@ -52,7 +52,6 @@ dataProcessingPy/
     - `videoToTxt.py`
 - `.gitignore`
 - `common.py`
-- `config.json`
 - `ReadMe.md`
 
 ## Additional-Info
