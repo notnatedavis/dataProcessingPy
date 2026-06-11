@@ -1,8 +1,8 @@
-# --- imgTemplate.py --- #
+# --- imgTemplate.py (extended) ---
 # Template for processing a single image: crop to ratio, draw grid lines, save as new file
+# Extended: interactive colour selection for grid lines when --color is not provided.
 
 # ----- Imports ----- #
-
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -14,7 +14,7 @@ import common
 
 # ----- Helper Functions ----- #
 
-def crop_img(image: Image.Image, ratio: str = "1:1") -> Image.Image : 
+def crop_img(image: Image.Image, ratio: str = "1:1") -> Image.Image :
     # Crop image to given aspect ratio (centered)
     width, height = image.size
 
@@ -69,7 +69,47 @@ def draw_lines(image: Image.Image, color: str = "red") -> Image.Image :
 
     return image
 
-# ----- Main ----- #
+# ----- New interactive colour selection ----- #
+def choose_color() -> str:
+    """
+    Prompt the user to pick a single colour for the grid lines.
+    Returns a valid PIL colour name.
+    """
+    # List of commonly used, well‑supported colour names
+    colours = [
+        "red", "green", "blue", "yellow", "cyan", "magenta",
+        "white", "black", "gray", "orange", "purple", "pink"
+    ]
+
+    print("\nAvailable grid colours:")
+    for i, c in enumerate(colours, 1):
+        print(f"  {i}. {c}")
+    print("  (You may also type any other PIL colour name)")
+
+    while True:
+        choice = input("Enter colour number or name: ").strip()
+        if not choice:
+            return "red"   # safe default
+
+        # Check if a number was entered
+        if choice.isdigit():
+            idx = int(choice) - 1
+            if 0 <= idx < len(colours):
+                return colours[idx]
+            else:
+                print("Number out of range, please try again.")
+                continue
+        else:
+            # Assume the user typed a colour name directly
+            # Simple validation: try to create a 1x1 image with that colour
+            try:
+                Image.new("RGB", (1,1), choice)
+                return choice
+            except ValueError:
+                print(f"'{choice}' is not a recognised colour name. Try again.")
+                continue
+
+# ----- Main (extended) ----- #
 
 def main() :
     parser = argparse.ArgumentParser(description="Crop an image to a ratio and draw grid lines.")
@@ -77,12 +117,20 @@ def main() :
     parser.add_argument('--folder', help='Folder name inside base directory')
     parser.add_argument('--file', help='Image filename (optional, will prompt if not given)')
     parser.add_argument('--ratio', choices=['1:1', '4:3'], default='1:1', help='Aspect ratio')
-    parser.add_argument('--color', default='red', help='Line color (any PIL color name)')
+    parser.add_argument('--color', default=None, help='Line colour (any PIL colour name). '
+                        'If not given, you will be prompted to choose interactively.')
     parser.add_argument('--prefix', default='XXX', help='Prefix for output filename')
     parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output')
     args = parser.parse_args()
 
     common.setup_logging(args.verbose)
+
+    # Determine the grid colour
+    if args.color is None:
+        colour = choose_color()
+    else:
+        colour = args.color
+    logging.info(f"Using grid colour: {colour}")
 
     if args.dir and args.folder :
         base_dir = args.dir
@@ -128,7 +176,7 @@ def main() :
     # Load, crop, draw, save
     with Image.open(image_path) as img :
         cropped = crop_img(img, args.ratio)
-        final = draw_lines(cropped, args.color)
+        final = draw_lines(cropped, colour)
         output_filename = f"{args.prefix}{selected}"
         output_path = os.path.join(folder_path, output_filename)
         final.save(output_path)

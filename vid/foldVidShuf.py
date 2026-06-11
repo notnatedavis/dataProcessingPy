@@ -1,7 +1,11 @@
 # --- vid/foldVidShuf.py ---
-# Applies character and spatial shuffle to all .txt files (video frames) in a folder
+# (full file, updated)
+
+# --- vid/foldVidShuf.py ---
+# Applies character and spatial shuffle to all .txt files (video frames) in a folder.
 # Supports selecting a subfolder (e.g., *_frames) inside the chosen folder.
-# Includes robust error handling, dimension consistency checks, and slicing assertions.
+# Reads shuffle parameters from index.txt if present; otherwise uses common constants.
+# Spatial shuffle now uses the correct forward permutation (matching image shuffle).
 
 import sys
 import os
@@ -9,6 +13,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import argparse
 import logging
+import json                     # for reading index.txt
 import common
 try:
     from tqdm import tqdm
@@ -16,11 +21,32 @@ except ImportError:
     tqdm = None
 
 # ----- Helper Functions -----
-def shuffle_text_file(text_path: str, ref_dims: tuple = None, verbose: bool = False, use_tqdm: bool = False) -> tuple:
+def load_shuffle_config(folder_path: str) -> dict:
+    """
+    Try to load shuffle parameters from index.txt.
+    Returns a dictionary with keys:
+        'spatial_permutation', 'char_shuffle_map'
+    If the file does not exist or is invalid, returns None.
+    """
+    index_path = os.path.join(folder_path, common.INDEX_FILENAME)
+    if not os.path.isfile(index_path):
+        return None
+    try:
+        with open(index_path, 'r') as f:
+            data = json.load(f)
+        # minimal validation
+        if 'spatial_permutation' not in data or 'char_shuffle_map' not in data:
+            raise ValueError("index.txt missing required fields")
+        return data
+    except Exception as e:
+        logging.warning(f"Could not load {common.INDEX_FILENAME}: {e}. Falling back to built-in constants.")
+        return None
+
+def shuffle_text_file(text_path: str, ref_dims: tuple = None, config: dict = None,
+                      verbose: bool = False, use_tqdm: bool = False) -> tuple:
     """
     Shuffle a single frame file.
     Returns the dimensions (rows, cols) of the frame for consistency checking.
-    Raises appropriate exceptions on failure.
     """
     try:
         with open(text_path, 'r') as f:
@@ -50,31 +76,44 @@ def shuffle_text_file(text_path: str, ref_dims: tuple = None, verbose: bool = Fa
 
     # --- Character shuffle ---
     char_shuffled = []
+    # Determine character map: from config if available, else use common
+    char_map = config['char_shuffle_map'] if config else common.CHAR_SHUFFLE_MAP
+
     for row in pixel_rows:
         pixels = row.split()
         # Validate each pixel length (should be 6)
         for p in pixels:
             if len(p) != 6:
                 raise ValueError(f"Invalid pixel string '{p}' in {text_path}")
-        shuffled = [common.shuffle_pixel(p) for p in pixels]
+        # Use a local shuffle function that applies the given map
+        shuffled = [_shuffle_pixel_with_map(p, char_map) for p in pixels]
         char_shuffled.append(' '.join(shuffled))
 
     # --- Spatial shuffle (forced division) ---
     slices, dims, row_slices, col_slices = common.slice_image_data_forced(
         char_shuffled, total_rows, total_cols
     )
-    # Assertions to ensure slicing integrity
-    assert len(slices) == common.TOTAL_SLICES, \
-        f"Expected {common.TOTAL_SLICES} slices, got {len(slices)}"
-    assert len(dims) == common.TOTAL_SLICES, "Slice dimensions mismatch"
+
+    # Load spatial permutation
+    spatial_perm = config['spatial_permutation'] if config else common.SPATIAL_PERMUTATION
+    total_slices = len(spatial_perm)
+
+    assert len(slices) == total_slices, \
+        f"Expected {total_slices} slices, got {len(slices)}"
+    assert len(dims) == total_slices, "Slice dimensions mismatch"
+
     # Verify that the slices, when concatenated, would reconstruct original dimensions
     total_slice_rows = sum(end - start for start, end in row_slices)
     total_slice_cols = sum(end - start for start, end in col_slices)
     assert total_slice_rows == total_rows, f"Row slices sum to {total_slice_rows}, expected {total_rows}"
     assert total_slice_cols == total_cols, f"Col slices sum to {total_slice_cols}, expected {total_cols}"
 
-    # Apply permutation
-    permuted_slices = [slices[i] for i in common.SPATIAL_PERMUTATION]
+    # --- Apply forward permutation (same logic as foldImgShuf.py) ---
+    permuted_slices = [None] * total_slices
+    for orig_idx in range(total_slices):
+        target_idx = spatial_perm[orig_idx]    # forward map
+        permuted_slices[target_idx] = slices[orig_idx]
+
     shuffled_rows = common.reconstruct_image_from_slices_forced(
         permuted_slices, dims, row_slices, col_slices, inverse=False
     )
@@ -90,6 +129,17 @@ def shuffle_text_file(text_path: str, ref_dims: tuple = None, verbose: bool = Fa
         logging.info(f"Shuffled: {os.path.basename(text_path)}")
 
     return ref_dims
+
+
+def _shuffle_pixel_with_map(pixel_str: str, char_map: dict) -> str:
+    """Apply character shuffle using the provided map (same logic as common.shuffle_pixel)."""
+    if len(pixel_str) != 6:
+        return pixel_str
+    chars = list(pixel_str)
+    chars[0] = char_map.get(chars[0], chars[0])
+    chars[2] = char_map.get(chars[2], chars[2])
+    chars[4] = char_map.get(chars[4], chars[4])
+    return ''.join(chars)
 
 # ----- Main -----
 def main():
@@ -130,21 +180,30 @@ def main():
             logging.error(f"Subfolder selection failed: {e}")
             return
 
-    # --- Step 3: Find all .txt files in the target folder, EXCLUDING metadata.txt ---
+    # --- Load shuffle configuration from index.txt (if present) ---
+    config = load_shuffle_config(target_folder)
+
+    # --- Step 3: Find all .txt files in the target folder, EXCLUDING metadata.txt and index.txt ---
     text_files = [f for f in os.listdir(target_folder)
                   if f.lower().endswith('.txt')
                   and not f.startswith('.')
-                  and f != 'metadata.txt']
+                  and f not in ('metadata.txt', common.INDEX_FILENAME)]
     text_files.sort(key=common.natural_sort_key)
 
     if not text_files:
         logging.error(f"No .txt files found in {target_folder}.")
         return
 
-    logging.info(f"Grid: {common.GRID_ROWS}x{common.GRID_COLS}, rounding: {common.ROUNDING_MODE}")
+    # Log which grid we are using
+    if config:
+        logging.info(f"Using shuffle parameters from {common.INDEX_FILENAME}")
+        grid_rows = config.get('grid_rows', common.GRID_ROWS)
+        grid_cols = config.get('grid_cols', common.GRID_COLS)
+    else:
+        grid_rows, grid_cols = common.GRID_ROWS, common.GRID_COLS
+    logging.info(f"Grid: {grid_rows}x{grid_cols}, rounding: {common.ROUNDING_MODE}")
     logging.info(f"Found {len(text_files)} frame files in {target_folder}. Starting shuffle...")
 
-    # Decide whether to show a progress bar
     use_tqdm = tqdm is not None and not args.no_progress
     iterator = text_files
     if use_tqdm:
@@ -156,11 +215,10 @@ def main():
     for txt_file in iterator:
         txt_path = os.path.join(target_folder, txt_file)
         try:
-            ref_dims = shuffle_text_file(txt_path, ref_dims, args.verbose, use_tqdm)
+            ref_dims = shuffle_text_file(txt_path, ref_dims, config, args.verbose, use_tqdm)
         except Exception as e:
             logging.error(f"Error processing {txt_file}: {e}")
             failed_files.append(txt_file)
-            # Optionally continue or break? Here we continue to process others.
             continue
 
     if failed_files:

@@ -26,20 +26,24 @@ def setup_logging(verbose: bool = False) -> None :
 # ----- Global Constants (loaded from config) ----- #
 
 VALID_DIRECTORIES : List[str] = [
-    "D:\\",
-    "/run/media/User/PERSONAL3", 
-    "/Volumes/PERSONAL3", # specific usb macos
     "/Volumes/Macintosh HD/Users/User/Directory", # blank macos
-    "C:\\Users\\User\\OneDrive\\Desktop\\directory\\",
-    "/Users/whoshotnate/Desktop/everything/games/DolphinEmulator/etc",
-    "C:\\Users\\davis\\OneDrive\\Desktop\\everything\\games\\DolphinEmulator\\etc\\",
-    "C:\\Users\\ASUS\\Desktop\\everything\\photos\\draw" # personal win pc
+    "C:\\Users\\User\\Desktop\\directory\\", # blank win
+    
+    "D:\\", # specific usb win
+    "/run/media/User/PERSONAL3", # specific usb linux
+    "/Volumes/PERSONAL3", # specific usb macos
+
+    "/Users/whoshotnate/Desktop/everything/photos/draw", # personal mac pc
+    "/Users/whoshotnate/Desktop/everything/games/DolphinEmulator/etc", # personal mac pc
+    "C:\\Users\\ASUS\\Desktop\\everything\\photos\\draw", # personal win pc
+    "C:\\Users\\ASUS\\Desktop\\everything\\games\\DolphinEmulator\\etc" # personal win pc
 ]
 IGNORE: set = {"System Volume Information"}
 GRID_DIVISOR: int = 8
 GRID_ROWS: int = 8
 GRID_COLS: int = 8
 TOTAL_SLICES: int = GRID_ROWS * GRID_COLS
+INDEX_FILENAME: str = "index.txt" # for vid/
 
 # Spatial permutation (generated as (i*13) % 64)
 SPATIAL_PERMUTATION: List[int] = [

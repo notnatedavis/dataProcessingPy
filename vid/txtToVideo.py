@@ -1,7 +1,10 @@
+# --- vid/txtToVideo.py ---
+# (full file, updated)
+
 # --- vid/txtToVideo.py --- #
 # Reconstructs a video from encrypted text frame files using ffmpeg.
 # Reads metadata.txt for dimensions and FPS, then pipes raw frames to ffmpeg.
-# Now includes live ffmpeg statistics in the tqdm progress bar.
+# Now also skips index.txt when listing frame files.
 # Enhanced with dimension validation, frame count checks, and robust error handling.
 
 import sys
@@ -86,9 +89,9 @@ def frames_to_video_ffmpeg(input_folder: str, output_video_path: str, no_progres
         logging.warning(f"Dimensions {width}x{height} are not multiples of {common.GRID_DIVISOR}. "
                         "Reconstruction may be imperfect if frames were shuffled with different rounding.")
 
-    # Get all .txt files except metadata.txt
+    # Get all .txt files except metadata.txt AND index.txt
     frame_files = [f for f in os.listdir(input_folder)
-                   if f.endswith('.txt') and f != 'metadata.txt']
+                   if f.endswith('.txt') and f != 'metadata.txt' and f != common.INDEX_FILENAME]
     frame_files.sort(key=common.natural_sort_key)
 
     if not frame_files:

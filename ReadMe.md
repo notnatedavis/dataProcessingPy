@@ -23,9 +23,30 @@ update
 - FUTURE IMPLEMENTATION -- Shuffle raw data format with key
 - FUTURE IMPLEMENTATION -- Unshuffle raw data format with key
 
-## Usage 
+## Usage
 
-1. git clone & cd in
+1. **Clone & enter**
+   ```bash
+   git clone https://github.com/notnatedavis/dataProcessingPy.git && cd dataProcessingPy
+   ```
+
+2. **Create virtual environment & activate**
+    ```bash
+    python -m venv venv
+    source venv/bin/activate        # Linux / macOS
+        # or
+    venv\Scripts\activate           # Windows
+    ```
+
+3. **Install dependencies**
+    ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Run desired file**
+    ```bash
+    python x/x*
+    ```
 
 ## Configuration
 

@@ -1,7 +1,8 @@
-# ----- vid/videoToTxt.py ----- 
+# vid/videoToTxt.py  
+
 # Deconstructs a video into encrypted text frames using ffmpeg.
-# Crops each frame to dimensions divisible by GRID_DIVISOR and saves metadata.txt.
-# Enhanced with dimension validation, frame count checks, and error handling.
+# Crops each frame to dimensions divisible by GRID_DIVISOR, saves metadata.txt,
+# and now also saves index.txt with full shuffle parameters for reconstruction.
 
 import sys
 import os
@@ -11,6 +12,7 @@ import argparse
 import logging
 import subprocess as sp
 import numpy as np
+import json                     # new import for index.txt
 import common
 try:
     import ffmpeg
@@ -53,8 +55,26 @@ def frame_to_text(frame_rgb: np.ndarray, frame_index: int, output_folder: str,
     except Exception as e:
         raise IOError(f"Failed to write frame {frame_index} to {out_path}: {e}")
 
+def create_index_file(output_folder: str) -> None:
+    """
+    Create an index.txt file containing all parameters needed for
+    unshuffling and reconstruction.
+    """
+    index_path = os.path.join(output_folder, common.INDEX_FILENAME)
+    index_data = {
+        "grid_rows": common.GRID_ROWS,
+        "grid_cols": common.GRID_COLS,
+        "spatial_permutation": common.SPATIAL_PERMUTATION,
+        "char_shuffle_map": common.CHAR_SHUFFLE_MAP
+    }
+    try:
+        with open(index_path, 'w') as f:
+            json.dump(index_data, f, indent=2)
+    except Exception as e:
+        raise IOError(f"Failed to write {common.INDEX_FILENAME}: {e}")
+
 def video_to_frames_ffmpeg(video_path: str, output_folder: str) -> int:
-    """Extract frames via ffmpeg pipe, crop, and save as encrypted text."""
+    """Extract frames via ffmpeg pipe, crop, save as encrypted text, and create index."""
     os.makedirs(output_folder, exist_ok=True)
 
     # Probe video to get info
@@ -94,6 +114,13 @@ def video_to_frames_ffmpeg(video_path: str, output_folder: str) -> int:
             f.write(f"{crop_w},{crop_h},{fps}")
     except Exception as e:
         raise IOError(f"Failed to write metadata: {e}")
+
+    # Save index.txt with shuffle parameters
+    try:
+        create_index_file(output_folder)
+    except Exception as e:
+        logging.error(f"Could not create index file: {e}")
+        # not fatal – we continue
 
     # Build ffmpeg command to output raw RGB frames
     process = (
