@@ -1,8 +1,8 @@
-# --- indImgE.py --- #
-# Encrypts a single image to a .txt file, cropping dimensions if necessary.
+#   img/indImgE.py
 
-# ----- Imports ----- #
+#   Encrypts a single image to a .txt file, cropping dimensions if necessary.
 
+# --- Imports --- 
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -12,10 +12,9 @@ import logging
 from PIL import Image
 import common
 
-# ----- Helper Functions ----- #
-
+# --- Helper Functions --- 
 def encrypt_image_to_text(image_path: str, output_text_path: str) -> None :
-    # Convert an image to encrypted text, cropping dimensions if needed
+    # convert an image to encrypted text, cropping dimensions if needed
     img = Image.open(image_path)
     if img.mode != 'RGB' :
         img = img.convert('RGB')
@@ -24,7 +23,7 @@ def encrypt_image_to_text(image_path: str, output_text_path: str) -> None :
     new_w, new_h = common.crop_to_divisible(orig_w, orig_h)
 
     if (new_w, new_h) != (orig_w, orig_h) :
-        # Crop from bottom-right
+        # crop from bottom-right
         img = img.crop((0, 0, new_w, new_h))
         logging.info(f"  Cropped: {orig_w}x{orig_h} → {new_w}x{new_h}")
 
@@ -41,8 +40,7 @@ def encrypt_image_to_text(image_path: str, output_text_path: str) -> None :
     os.remove(image_path)
     logging.info(f"Encrypted to: {output_text_path}")
 
-# ----- Main ----- #
-
+# --- Main --- 
 def main() :
     parser = argparse.ArgumentParser(description="Encrypt a single image to a .txt file.")
     parser.add_argument('--dir', help='Base directory path')
@@ -66,7 +64,7 @@ def main() :
             logging.error(e)
             return
 
-    # Find image files
+    # find image files
     image_files = [f for f in os.listdir(folder_path)
                    if not f.startswith('.')
                    and f.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tiff'))]

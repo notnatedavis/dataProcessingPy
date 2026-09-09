@@ -1,9 +1,9 @@
-# --- foldImgUnshuf.py --- #
-# Reverses character and spatial shuffle on all .txt files in a folder
-# Uses forced division with consistent rounding
+#   img/foldImgUnshuf.py
 
-# ----- Imports ----- #
+#   Reverses character and spatial shuffle on all .txt files in a folder
+#   Uses forced division with consistent rounding
 
+# --- Imports ---
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -17,10 +17,9 @@ try :
 except ImportError :
     tqdm = None
 
-# ----- Helper Functions ----- #
-
+# --- Helper Functions ---
 def unshuffle_text_file(text_path: str) -> None :
-    # Read, unshuffle (spatial then character), and write back a single .txt file
+    # read, unshuffle (spatial then character), and write back a single .txt file
     with open(text_path, 'r') as f :
         lines = f.readlines()
 
@@ -32,22 +31,22 @@ def unshuffle_text_file(text_path: str) -> None :
     total_rows = len(pixel_rows)
     total_cols = len(pixel_rows[0].split())
 
-    # Crop to multiple of GRID_ROWS and GRID_COLS (should match the shuffled image)
+    # crop to multiple of GRID_ROWS and GRID_COLS (should match the shuffled image)
     new_h, new_w = common.crop_to_divisible(total_rows, total_cols)
     if new_h != total_rows or new_w != total_cols:
         pixel_rows = [row[:new_w] for row in pixel_rows[:new_h]]
         total_rows, total_cols = new_h, new_w
 
-    # Slicing
+    # slicing
     slices, dims, row_slices, col_slices = common.slice_image_data_forced(pixel_rows, total_rows, total_cols)
 
-    # Unpermute using backward map
+    # unpermute using backward map
     original_slices = [None] * common.TOTAL_SLICES
     for shuffled_idx in range(common.TOTAL_SLICES):
         orig_idx = common.SPATIAL_INVERSE_PERMUTATION[shuffled_idx]
         original_slices[orig_idx] = slices[shuffled_idx]
 
-    # Reconstruct
+    # reconstruct
     unshuffled_rows = common.reconstruct_image_from_slices_forced(
         original_slices, dims, row_slices, col_slices, inverse=False
     )
@@ -57,8 +56,7 @@ def unshuffle_text_file(text_path: str) -> None :
 
     logging.info(f"Unshuffled: {os.path.basename(text_path)}")
 
-# ----- Main ----- #
-
+# --- Main ---
 def main() :
     parser = argparse.ArgumentParser(description="Unshuffle all .txt files in a folder.")
     parser.add_argument('--dir', help='Base directory path')

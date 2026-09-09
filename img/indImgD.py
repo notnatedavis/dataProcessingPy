@@ -1,9 +1,9 @@
-# --- indImgD.py --- #
-# Decrypts a single encrypted .txt file to an image (JPEG)
-# Uses common module
+#   img/indImgD.py
 
-# ----- Imports ----- #
+#   Decrypts a single encrypted .txt file to an image (JPEG)
+#   Uses common module
 
+# --- Imports ---
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -13,17 +13,16 @@ import logging
 from PIL import Image
 import common
 
-# ----- Helper Functions ----- #
-
+# --- Helper Functions ---
 def decrypt_text_to_image(text_path: str, output_image_path: str) -> None :
-    # Convert a single encrypted text file to an image
+    # convert a single encrypted text file to an image
     with open(text_path, 'r') as f :
         lines = f.readlines()
 
     height = len(lines)
     width = len(lines[0].strip().split())
 
-    # Validate dimensions (optional, just info)
+    # validate dimensions (optional, just info)
     valid, msg = common.validate_dimensions(width, height)
     logging.info(f"  {msg}")
 
@@ -40,8 +39,7 @@ def decrypt_text_to_image(text_path: str, output_image_path: str) -> None :
     os.remove(text_path)
     logging.info(f"Decrypted to: {output_image_path}")
 
-# ----- Main ----- #
-
+# --- Main --- 
 def main() :
     parser = argparse.ArgumentParser(description="Decrypt a single .txt file to an image.")
     parser.add_argument('--dir', help='Base directory path')
@@ -65,7 +63,7 @@ def main() :
             logging.error(e)
             return
 
-    # Find .txt files
+    # find .txt files
     text_files = [f for f in os.listdir(folder_path)
                   if f.lower().endswith('.txt') and not f.startswith('.')]
     text_files.sort(key=common.natural_sort_key)

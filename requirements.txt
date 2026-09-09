@@ -1,1 +1,5 @@
+#   requirements.txt
 pillow
+ffmpeg-python
+numpy
+tqdm

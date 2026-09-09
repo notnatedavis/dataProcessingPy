@@ -1,8 +1,8 @@
-# ----- foldImgE.py ----- #
-# Encrypts all images in a folder to .txt files, cropping if needed
+#   img/foldImgE.py
 
-# ----- Imports ----- #
+#   Encrypts all images in a folder to .txt files, cropping if needed
 
+# --- Imports ---
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -12,10 +12,9 @@ import logging
 from PIL import Image
 import common
 
-# ----- Helper Functions ----- #
-
+# --- Helper Functions ---
 def encrypt_image_to_text(image_path: str, output_text_path: str) -> None :
-    # Convert an image to encrypted text, cropping dimensions if necessary
+    # convert an image to encrypted text, cropping dimensions if necessary
     img = Image.open(image_path)
     original_format = img.format
     if img.mode != 'RGB' :
@@ -44,8 +43,7 @@ def encrypt_image_to_text(image_path: str, output_text_path: str) -> None :
     os.remove(image_path)
     logging.info(f"Encrypted to: {os.path.basename(output_text_path)}")
 
-# ----- Main ----- #
-
+# --- Main --- 
 def main() :
     parser = argparse.ArgumentParser(description="Encrypt all images in a folder to .txt files.")
     parser.add_argument('--dir', help='Base directory path')
@@ -68,7 +66,7 @@ def main() :
             logging.error(e)
             return
 
-    # Find image files
+    # find image files
     image_files = [f for f in os.listdir(folder_path)
                    if not f.startswith('.')
                    and f.lower().endswith(('.jpg', '.jpeg', '.png', '.bmp', '.gif', '.tiff'))]

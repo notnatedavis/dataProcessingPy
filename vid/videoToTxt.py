@@ -1,9 +1,10 @@
-# vid/videoToTxt.py  
+#   vid/videoToTxt.py  
 
-# Deconstructs a video into encrypted text frames using ffmpeg.
-# Crops each frame to dimensions divisible by GRID_DIVISOR, saves metadata.txt,
-# and now also saves index.txt with full shuffle parameters for reconstruction.
+#   Deconstructs a video into encrypted text frames using ffmpeg.
+#   Crops each frame to dimensions divisible by GRID_DIVISOR, saves metadata.txt,
+#   and now also saves index.txt with full shuffle parameters for reconstruction.
 
+# --- Imports ---
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -12,37 +13,36 @@ import argparse
 import logging
 import subprocess as sp
 import numpy as np
-import json                     # new import for index.txt
+import json # import for index.txt
 import common
 try:
     import ffmpeg
-except ImportError:
+except ImportError :
     logging.error("ffmpeg-python not installed. Run: pip install ffmpeg-python")
     sys.exit(1)
-try:
+try :
     from tqdm import tqdm
-except ImportError:
+except ImportError :
     tqdm = None
 
-# ----- Helper Functions -----
+# --- Helper Functions ---
 def frame_to_text(frame_rgb: np.ndarray, frame_index: int, output_folder: str,
-                  crop_w: int, crop_h: int) -> None:
-    """
-    Convert a single RGB frame (numpy array) to encrypted text and save.
-    The frame is assumed to be already cropped to (crop_h, crop_w).
-    """
+                  crop_w: int, crop_h: int) -> None :
+    # Convert a single RGB frame (numpy array) to encrypted text and save.
+    # The frame is assumed to be already cropped to (crop_h, crop_w)
+
     # Verify dimensions
     if frame_rgb.shape[:2] != (crop_h, crop_w):
-        # Crop from top-left if needed (shouldn't happen, but handle gracefully)
+        # crop from top-left if needed (shouldn't happen, but handle gracefully)
         logging.warning(f"Frame {frame_index} has unexpected size {frame_rgb.shape[:2]}, cropping to {crop_h}x{crop_w}")
         frame_rgb = frame_rgb[:crop_h, :crop_w]
 
     out_filename = f"frame_{frame_index:04d}.txt"
     out_path = os.path.join(output_folder, out_filename)
 
-    try:
-        with open(out_path, 'w') as f:
-            for y in range(crop_h):
+    try :
+        with open(out_path, 'w') as f :
+            for y in range(crop_h) :
                 for x in range(crop_w):
                     r, g, b = frame_rgb[y, x]
                     # Ensure values are integers within 0-255
@@ -55,11 +55,10 @@ def frame_to_text(frame_rgb: np.ndarray, frame_index: int, output_folder: str,
     except Exception as e:
         raise IOError(f"Failed to write frame {frame_index} to {out_path}: {e}")
 
-def create_index_file(output_folder: str) -> None:
-    """
-    Create an index.txt file containing all parameters needed for
-    unshuffling and reconstruction.
-    """
+def create_index_file(output_folder: str) -> None :
+    # create an index.txt file containing all parameters needed for
+    # unshuffling and reconstruction
+
     index_path = os.path.join(output_folder, common.INDEX_FILENAME)
     index_data = {
         "grid_rows": common.GRID_ROWS,
@@ -67,24 +66,24 @@ def create_index_file(output_folder: str) -> None:
         "spatial_permutation": common.SPATIAL_PERMUTATION,
         "char_shuffle_map": common.CHAR_SHUFFLE_MAP
     }
-    try:
-        with open(index_path, 'w') as f:
+    try :
+        with open(index_path, 'w') as f :
             json.dump(index_data, f, indent=2)
-    except Exception as e:
+    except Exception as e :
         raise IOError(f"Failed to write {common.INDEX_FILENAME}: {e}")
 
-def video_to_frames_ffmpeg(video_path: str, output_folder: str) -> int:
-    """Extract frames via ffmpeg pipe, crop, save as encrypted text, and create index."""
+def video_to_frames_ffmpeg(video_path: str, output_folder: str) -> int :
+    # extract frames via ffmpeg pipe, crop, save as encrypted text, and create index
     os.makedirs(output_folder, exist_ok=True)
 
-    # Probe video to get info
-    try:
+    # probe video to get info
+    try :
         probe = ffmpeg.probe(video_path)
-    except ffmpeg.Error as e:
+    except ffmpeg.Error as e :
         raise RuntimeError(f"ffmpeg probe failed: {e.stderr.decode()}")
 
     video_stream = next((s for s in probe['streams'] if s['codec_type'] == 'video'), None)
-    if not video_stream:
+    if not video_stream :
         raise ValueError("No video stream found.")
 
     orig_w = int(video_stream['width'])
@@ -92,12 +91,12 @@ def video_to_frames_ffmpeg(video_path: str, output_folder: str) -> int:
     fps = eval(video_stream['r_frame_rate'])  # may be fraction like "30000/1001"
     total_frames = int(video_stream.get('nb_frames', 0))
     if total_frames == 0:
-        # Estimate from duration
+        # estimate from duration
         duration = float(probe['format']['duration'])
         total_frames = int(duration * fps)
         logging.info(f"Estimated total frames: {total_frames}")
 
-    # Determine cropped dimensions (same for all frames)
+    # determine cropped dimensions (same for all frames)
     crop_w, crop_h = common.crop_to_divisible(orig_w, orig_h)
     if crop_w == 0 or crop_h == 0:
         raise ValueError(f"Cropped dimensions are zero: {crop_w}x{crop_h}. Video too small for divisor {common.GRID_DIVISOR}.")

@@ -1,8 +1,9 @@
-# --- imgTemplate.py (extended) ---
-# Template for processing a single image: crop to ratio, draw grid lines, save as new file
-# Extended: interactive colour selection for grid lines when --color is not provided.
+#   img/imgTemplate.py
 
-# ----- Imports ----- #
+#   Template for processing a single image: crop to ratio, draw grid lines, save as new file
+#   Extended: interactive colour selection for grid lines when --color is not provided.
+
+# --- Imports ---
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -12,8 +13,7 @@ import logging
 from PIL import Image, ImageDraw
 import common
 
-# ----- Helper Functions ----- #
-
+# --- Helper Functions --- 
 def crop_img(image: Image.Image, ratio: str = "1:1") -> Image.Image :
     # Crop image to given aspect ratio (centered)
     width, height = image.size
@@ -45,11 +45,11 @@ def crop_img(image: Image.Image, ratio: str = "1:1") -> Image.Image :
     return image.crop((left, top, right, bottom))
 
 def draw_lines(image: Image.Image, color: str = "red") -> Image.Image :
-    # Draw red (major) and yellow (minor) grid lines on the image
+    # draw red (major) and yellow (minor) grid lines on the image
     draw = ImageDraw.Draw(image)
     width, height = image.size
 
-    # Major lines at quarters
+    # major lines at quarters
     qw = width / 4
     qh = height / 4
     for i in range(1, 4) :
@@ -58,7 +58,7 @@ def draw_lines(image: Image.Image, color: str = "red") -> Image.Image :
         x = int(qw * i)
         draw.line((x, 0, x, height), fill=color, width=1)
 
-    # Minor lines at eighths
+    # minor lines at eighths
     ew = width / 8
     eh = height / 8
     for i in range(1, 8, 2) :
@@ -69,12 +69,11 @@ def draw_lines(image: Image.Image, color: str = "red") -> Image.Image :
 
     return image
 
-# ----- New interactive colour selection ----- #
-def choose_color() -> str:
-    """
-    Prompt the user to pick a single colour for the grid lines.
-    Returns a valid PIL colour name.
-    """
+# --- colour selection ---
+def choose_color() -> str : 
+    # Prompt the user to pick a single colour for the grid lines.
+    # Returns a valid PIL colour name
+
     # List of commonly used, well‑supported colour names
     colours = [
         "red", "green", "blue", "yellow", "cyan", "magenta",
@@ -91,7 +90,7 @@ def choose_color() -> str:
         if not choice:
             return "red"   # safe default
 
-        # Check if a number was entered
+        # check if a number was entered
         if choice.isdigit():
             idx = int(choice) - 1
             if 0 <= idx < len(colours):
@@ -100,17 +99,16 @@ def choose_color() -> str:
                 print("Number out of range, please try again.")
                 continue
         else:
-            # Assume the user typed a colour name directly
-            # Simple validation: try to create a 1x1 image with that colour
-            try:
+            # assume the user typed a colour name directly
+            # simple validation: try to create a 1x1 image with that colour
+            try :
                 Image.new("RGB", (1,1), choice)
                 return choice
-            except ValueError:
+            except ValueError :
                 print(f"'{choice}' is not a recognised colour name. Try again.")
                 continue
 
-# ----- Main (extended) ----- #
-
+# --- Main --- #
 def main() :
     parser = argparse.ArgumentParser(description="Crop an image to a ratio and draw grid lines.")
     parser.add_argument('--dir', help='Base directory path')
