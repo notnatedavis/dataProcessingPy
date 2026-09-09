@@ -55,8 +55,38 @@ update
 
 ## Project-Structure
 
+# Project Structure
+
+```bash
 dataProcessingPy/
-- update
+├── docs
+│   └── Todo.md
+│
+├── img
+│   ├── foldImgD.py
+│   ├── foldImgE.py
+│   ├── foldImgShuf.py
+│   ├── foldImgUnshuf.py
+│   ├── imgTemplate.py
+│   ├── indImgD.py
+│   └── indImgE.py
+│
+├── json
+│   ├── foldJsonShuf.py
+│   └── foldJsonUnshuf.py
+│
+├── vid
+│   ├── foldVidShuf.py
+│   ├── foldVidUnshuf.py
+│   ├── txtToVideo.py
+│   └── videoToTxt.py
+│
+├── .gitignore
+├── .python-version
+├── common.py
+├── ReadMe.md
+└── requirements.txt
+```
 
 ## Additional-Info
 

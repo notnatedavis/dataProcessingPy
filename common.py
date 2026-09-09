@@ -1,9 +1,9 @@
-# ----- common.py ----- #
-# Shared constants, helpers, and configuration loader for the dataProcessingPy project
-# Hardcoded config
+#   common.py
 
-# ----- Imports ----- #
+#   Shared constants, helpers, and configuration loader for the dataProcessingPy project
+#   Hardcoded config
 
+# --- Imports ---
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -12,8 +12,7 @@ import re
 import logging
 from typing import List, Tuple, Any, Dict, Optional
 
-# ----- Logging Setup ----- #
-
+# --- Logging Setup ---
 def setup_logging(verbose: bool = False) -> None :
     # Configure logging for the application
     level = logging.DEBUG if verbose else logging.INFO
@@ -23,8 +22,7 @@ def setup_logging(verbose: bool = False) -> None :
         datefmt='%Y-%m-%d %H:%M:%S'
     )
 
-# ----- Global Constants (loaded from config) ----- #
-
+# --- Global Constants (loaded from config) ---
 VALID_DIRECTORIES : List[str] = [
     "/Volumes/Macintosh HD/Users/User/Directory", # blank macos
     "C:\\Users\\User\\Desktop\\directory\\", # blank win
@@ -33,7 +31,7 @@ VALID_DIRECTORIES : List[str] = [
     "/run/media/User/PERSONAL3", # specific usb linux
     "/Volumes/PERSONAL3", # specific usb macos
 
-    # "C:\\Users\\davis\\Desktop\\everything\\photos\\draw", # test
+    "C:\\Users\\davis\\Desktop\\everything\\photos\\draw", # test
     "/Users/whoshotnate/Desktop/everything/photos/draw", # personal mac pc
     "/Users/whoshotnate/Desktop/everything/games/DolphinEmulator/etc", # personal mac pc
     "C:\\Users\\davis\\Desktop\\everything\\games\\DolphinEmulator\\etc" # personal win pc
@@ -45,7 +43,7 @@ GRID_COLS: int = 8
 TOTAL_SLICES: int = GRID_ROWS * GRID_COLS
 INDEX_FILENAME: str = "index.txt" # for vid/
 
-# Spatial permutation (generated as (i*13) % 64)
+# spatial permutation (generated as (i*13) % 64)
 SPATIAL_PERMUTATION: List[int] = [
      0, 13, 26, 39, 52,  1, 14, 27,
     40, 53,  2, 15, 28, 41, 54,  3,
@@ -57,12 +55,12 @@ SPATIAL_PERMUTATION: List[int] = [
     24, 37, 50, 63, 12, 25, 38, 51
 ]
 
-# Inverse permutation (for unshuffle)
+# inverse permutation (for unshuffle)
 SPATIAL_INVERSE_PERMUTATION: List[int] = [0] * TOTAL_SLICES
 for orig_pos, target_pos in enumerate(SPATIAL_PERMUTATION) :
     SPATIAL_INVERSE_PERMUTATION[target_pos] = orig_pos
 
-# Character shuffle map
+# character shuffle map
 CHAR_SHUFFLE_MAP: Dict[str, str] = {
     'A': 'M', 'B': 'T', 'C': 'Z', 'D': 'P', 'E': 'K',
     'F': 'A', 'G': 'R', 'H': 'U', 'I': 'X', 'J': 'B',
@@ -72,76 +70,73 @@ CHAR_SHUFFLE_MAP: Dict[str, str] = {
     'Z': 'J'
 }
 
-# Inverse character map
+# inverse character map
 CHAR_UNSHUFFLE_MAP: Dict[str, str] = {v: k for k, v in CHAR_SHUFFLE_MAP.items()}
-
 ROUNDING_MODE: str = 'floor'   # 'floor', 'ceil', or 'round'
 
-# ----- Helper Functions ----- #
-
+# --- Helper Functions ---
 def natural_sort_key(s: str) -> List :
-    # Generate natural sorting key (e.g., 'a10.jpg' -> ['a', 10, '.jpg'])
+    # generate natural sorting key (e.g., 'a10.jpg' -> ['a', 10, '.jpg'])
     return [int(part) if part.isdigit() else part.lower()
             for part in re.split(r'([0-9]+)', s)]
 
 def validate_dimensions(width: int, height: int, divisor: int = GRID_DIVISOR) -> Tuple[bool, str] :
-    # Check if dimensions are divisible by divisor
+    # check if dimensions are divisible by divisor
     if width % divisor == 0 and height % divisor == 0 :
         return True, f"Valid: {width}x{height} divisible by {divisor}"
     else :
         return False, f"Warning: {width}x{height} not divisible by {divisor}"
 
-def select_subfolder(parent_folder: str, suffix: str = "", purpose: str = "process") -> str:
-    """
-    List subfolders inside parent_folder (optionally filtering by suffix) and let user select one.
-    Returns the full path of the selected subfolder.
-    """
+def select_subfolder(parent_folder: str, suffix: str = "", purpose: str = "process") -> str : 
+    # List subfolders inside parent_folder (optionally filtering by suffix) and let user select one
+    # Returns the full path of the selected subfolder
+
     subfolders = [f for f in os.listdir(parent_folder)
                   if os.path.isdir(os.path.join(parent_folder, f))
                   and not f.startswith('.')
                   and f not in IGNORE]
-    if suffix:
+    if suffix :
         subfolders = [f for f in subfolders if f.endswith(suffix)]
     subfolders.sort(key=natural_sort_key)
 
-    if not subfolders:
+    if not subfolders :
         raise FileNotFoundError(f"No subfolders{f' ending with {suffix}' if suffix else ''} found in {parent_folder}")
 
     print(f"\nAvailable subfolders to {purpose}:")
-    for i, f in enumerate(subfolders):
+    for i, f in enumerate(subfolders) :
         print(f"{i+1}. {f}")
 
-    try:
+    try :
         choice = int(input("\nEnter subfolder number: ")) - 1
         return os.path.join(parent_folder, subfolders[choice])
-    except (ValueError, IndexError):
-        raise ValueError("Invalid subfolder selection.")
+    except (ValueError, IndexError) :
+        raise ValueError("Invalid subfolder selection")
     
-    def crop_to_grid(orig_w, orig_h):
-        """Return largest dimensions <= original that are multiples of GRID_COLS and GRID_ROWS."""
-        new_w = orig_w - (orig_w % GRID_COLS)
-        new_h = orig_h - (orig_h % GRID_ROWS)
-        return new_w, new_h
+def crop_to_grid(orig_w, orig_h) :
+    # return largest dimensions <= original that are multiples of GRID_COLS and GRID_ROWS
+    new_w = orig_w - (orig_w % GRID_COLS)
+    new_h = orig_h - (orig_h % GRID_ROWS)
+    return new_w, new_h
     
-# ----- Encryption / Decryption ----- 
+# --- Encryption / Decryption --- 
 def value_to_encrypted_string(value: int) -> str :
-    # Convert an RGB value (0-255) to a 2-character encrypted string
+    # convert an RGB value (0-255) to a 2-character encrypted string
     char = chr(ord('A') + (value // 10))
     digit = str(value % 10)
     return f"{char}{digit}"
 
 def encrypted_string_to_value(encrypted_str: str) -> int :
-    # Convert a 2-character encrypted string back to an RGB value
+    # convert a 2-character encrypted string back to an RGB value
     char = encrypted_str[0]
     digit = encrypted_str[1]
     return (ord(char) - ord('A')) * 10 + int(digit)
 
 def rgb_to_encrypted_string(r: int, g: int, b: int) -> str :
-    # Convert RGB triple to a 6-character encrypted pixel string
+    # convert RGB triple to a 6-character encrypted pixel string
     return f"{value_to_encrypted_string(r)}{value_to_encrypted_string(g)}{value_to_encrypted_string(b)}"
 
 def encrypted_pixel_to_rgb(encrypted_pixel: str) -> Tuple[int, int, int] :
-    # Convert a 6-character encrypted pixel string back to RGB
+    # convert a 6-character encrypted pixel string back to RGB
     if len(encrypted_pixel) != 6 :
         raise ValueError(f"Invalid encrypted pixel length: {encrypted_pixel}")
     r = encrypted_string_to_value(encrypted_pixel[0:2])
@@ -149,18 +144,17 @@ def encrypted_pixel_to_rgb(encrypted_pixel: str) -> Tuple[int, int, int] :
     b = encrypted_string_to_value(encrypted_pixel[4:6])
     return r, g, b
 
-# ----- Character Shuffle / Unshuffle ----- #
-
-def shuffle_character(char: str) -> str:
-    # Apply character shuffle to a single A-Z character
+# --- Character Shuffle / Unshuffle ---
+def shuffle_character(char: str) -> str :
+    # apply character shuffle to a single A-Z character
     return CHAR_SHUFFLE_MAP.get(char, char)
 
-def unshuffle_character(char: str) -> str:
-    # Reverse character shuffle for a single A-Z character
+def unshuffle_character(char: str) -> str :
+    # reverse character shuffle for a single A-Z character
     return CHAR_UNSHUFFLE_MAP.get(char, char)
 
-def shuffle_pixel(pixel_str: str) -> str:
-    # Apply character shuffle to the three letters in a 6-char pixel string
+def shuffle_pixel(pixel_str: str) -> str :
+    # apply character shuffle to the three letters in a 6-char pixel string
     if len(pixel_str) != 6 :
         return pixel_str
     chars = list(pixel_str)
@@ -170,7 +164,7 @@ def shuffle_pixel(pixel_str: str) -> str:
     return ''.join(chars)
 
 def unshuffle_pixel(pixel_str: str) -> str :
-    # Reverse character shuffle on a 6-char pixel string
+    # reverse character shuffle on a 6-char pixel string
     if len(pixel_str) != 6 :
         return pixel_str
     chars = list(pixel_str)
@@ -179,10 +173,9 @@ def unshuffle_pixel(pixel_str: str) -> str :
     chars[4] = unshuffle_character(chars[4])
     return ''.join(chars)
 
-# ----- Grid Slicing (Forced Division) ----- #
-
+# --- Grid Slicing (Forced Division) --- 
 def calculate_slice_dimensions(total_size: int, num_slices: int) -> List[Tuple[int, int]] :
-    # Calculate start/end indices for each slice using forced division 
+    # calculate start/end indices for each slice using forced division 
 
     slices = []
     if ROUNDING_MODE == 'floor' :
@@ -214,13 +207,13 @@ def calculate_slice_dimensions(total_size: int, num_slices: int) -> List[Tuple[i
             start = end
     else :
         raise ValueError(f"Unknown ROUNDING_MODE: {ROUNDING_MODE}")
-    # Ensure last slice covers any remaining pixels due to rounding
+    # ensure last slice covers any remaining pixels due to rounding
     if slices and slices[-1][1] < total_size :
         slices[-1] = (slices[-1][0], total_size)
     return slices
 
 def slice_image_data_forced(lines: List[str], total_rows: int, total_cols: int) -> Tuple[List, List, List, List] :
-    # Slice image data (list of row strings) into a grid using forced division.
+    # Slice image data (list of row strings) into a grid using forced division
     # Returns (slices, slice_dimensions, row_slices, col_slices)
 
     row_slices = calculate_slice_dimensions(total_rows, GRID_ROWS)
@@ -251,18 +244,18 @@ def reconstruct_image_from_slices_forced(
     col_slices: List[Tuple[int, int]],
     inverse: bool = False
 ) -> List[str] :
-    # Reconstruct image data from slices using forced division.
-    # If inverse=True, use inverse permutation (for unshuffle).
-    # Returns list of row strings.
+    # reconstruct image data from slices using forced division
+    # if inverse=True, use inverse permutation (for unshuffle)
+    # returns list of row strings
     
     total_rows = sum(end - start for start, end in row_slices)
     total_cols = sum(end - start for start, end in col_slices)
 
-    # Create empty grid
+    # create empty grid
     image_grid = [[None for _ in range(total_cols)] for _ in range(total_rows)]
 
-    for current_pos, (slice_data, (slice_h, slice_w)) in enumerate(zip(slices, slice_dimensions)):
-        # Determine original grid position
+    for current_pos, (slice_data, (slice_h, slice_w)) in enumerate(zip(slices, slice_dimensions)) :
+        # determine original grid position
         if inverse :
             orig_pos = SPATIAL_INVERSE_PERMUTATION[current_pos]
         else :
@@ -274,7 +267,7 @@ def reconstruct_image_from_slices_forced(
         orig_row_start, _ = row_slices[orig_row_idx]
         orig_col_start, _ = col_slices[orig_col_idx]
 
-        # Place slice into grid
+        # place slice into grid
         for r in range(slice_h) :
             for c in range(slice_w) :
                 actual_row = orig_row_start + r
@@ -282,46 +275,44 @@ def reconstruct_image_from_slices_forced(
                 if actual_row < total_rows and actual_col < total_cols :
                     image_grid[actual_row][actual_col] = slice_data[r][c]
 
-    # Convert grid back to row strings
+    # convert grid back to row strings
     reconstructed = []
     for row in image_grid :
         reconstructed.append(' '.join(row))
     return reconstructed
 
-# ----- Image Cropping to Divisor ----- #
-
+# --- Image Cropping to Divisor --- 
 def crop_to_divisible(width: int, height: int, divisor: int = GRID_DIVISOR) -> Tuple[int, int]:
-    # Return new dimensions (w, h) cropped to be divisible by divisor."""
+    # return new dimensions (w, h) cropped to be divisible by divisor
     new_w = width - (width % divisor)
     new_h = height - (height % divisor)
     return new_w, new_h
 
-# ----- Interactive Directory/Folder Selection ----- #
-
+# --- Interactive Directory/Folder Selection ---
 def select_directory_and_folder(base_dirs: List[str] = None, purpose: str = "process") -> Tuple[str, str] :
-    # Interactive selection of base directory and folder
-    # Returns (base_dir, folder_path)
+    # interactive selection of base directory and folder
+    # returns (base_dir, folder_path)
 
     if base_dirs is None :
         base_dirs = VALID_DIRECTORIES
 
-    # Filter existing directories
+    # filter existing directories
     existing = [d for d in base_dirs if os.path.exists(d)]
     if not existing :
-        logging.error("No valid base directories found.")
-        raise FileNotFoundError("No valid base directories.")
+        logging.error("No valid base directories found")
+        raise FileNotFoundError("No valid base directories")
 
-    print("\nAvailable base directories:")
+    print("\nAvailable base directories :")
     for i, d in enumerate(existing) :
         print(f"{i+1}. {d}")
     try :
-        choice = int(input("\nSelect base directory number: ")) - 1
+        choice = int(input("\nSelect base directory number : ")) - 1
         base_dir = existing[choice]
     except (ValueError, IndexError) :
-        logging.error("Invalid selection.")
+        logging.error("Invalid selection")
         raise
 
-    # List folders in base_dir
+    # list folders in base_dir
     folders = [f for f in os.listdir(base_dir)
                if os.path.isdir(os.path.join(base_dir, f))
                and not f.startswith('.')
@@ -330,16 +321,16 @@ def select_directory_and_folder(base_dirs: List[str] = None, purpose: str = "pro
 
     if not folders :
         logging.error("No folders found in selected directory.")
-        raise FileNotFoundError("No folders.")
+        raise FileNotFoundError("No folders")
 
-    print("\nAvailable folders:")
+    print("\nAvailable folders :")
     for i, f in enumerate(folders) :
         print(f"{i+1}. {f}")
     try :
         choice = int(input(f"\nEnter folder number to {purpose}: ")) - 1
         folder_name = folders[choice]
     except (ValueError, IndexError) :
-        logging.error("Invalid selection.")
+        logging.error("Invalid selection")
         raise
 
     folder_path = os.path.join(base_dir, folder_name)
