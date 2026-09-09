@@ -32,10 +32,11 @@ update
 
 2. **Create virtual environment & activate**
     ```bash
+    pyenv local 3.10.0
     python -m venv venv
-    source venv/bin/activate        # Linux / macOS
+    source venv/bin/activate # Linux / macOS
         # or
-    venv\Scripts\activate           # Windows
+    venv\Scripts\activate    # Windows
     ```
 
 3. **Install dependencies**
@@ -55,25 +56,7 @@ update
 ## Project-Structure
 
 dataProcessingPy/
-- img/
-    - `foldImgD.py`
-    - `foldImgE.py`
-    - `foldImgShuf.py`
-    - `foldImgUnshuf.py`
-    - `imgTemplate.py`
-    - `indImgD.py`
-    - `indImgE.py`
-- json/
-    - `foldJsonShuf.py`
-    - `foldJsonUnshuf.py`
-- vid/
-    - `foldVidShuf.py`
-    - `foldVidUnshuf.py`
-    - `txtToVideo.py`
-    - `videoToTxt.py`
-- `.gitignore`
-- `common.py`
-- `ReadMe.md`
+- update
 
 ## Additional-Info
 

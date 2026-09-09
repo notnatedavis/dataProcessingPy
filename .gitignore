@@ -1,64 +1,8 @@
-# update / review to make sure .gitignore works
+#   .gitignore
 
-# Prerequisites (Project Specific)
-*.DS_Store
-*.d
-*.jpg
-*.png
-*.txt
-*.bmp
-*.idea
-*.idea/
+#   ascii art here
 
-# Object files
-*.o
-*.ko
-*.obj
-*.elf
-
-# Linker output
-*.ilk
-*.map
-*.exp
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Libraries
-*.lib
-*.a
-*.la
-*.lo
-
-# Shared objects (inc. Windows DLLs)
-*.dll
-*.so
-*.so.*
-*.dylib
-
-# Executables
-*.exe
-*.out
-*.app
-*.i*86
-*.x86_64
-*.hex
-
-# Debug files
-*.dSYM/
-*.su
-*.idb
-*.pdb
-
-# Kernel Module Compile Results
-*.mod*
-*.cmd
-.tmp_versions/
-modules.order
-Module.symvers
-Mkfile.old
-dkms.conf
-
-# junk
+# Project Specific
 __pycache__/
+venv/
+# .python-version
