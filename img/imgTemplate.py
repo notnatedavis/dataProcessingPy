@@ -125,13 +125,6 @@ def main() :
 
     common.setup_logging(args.verbose)
 
-    # Determine the grid colour
-    if args.color is None:
-        colour = choose_color()
-    else:
-        colour = args.color
-    logging.info(f"Using grid colour: {colour}")
-
     if args.dir and args.folder :
         base_dir = args.dir
         folder_path = os.path.join(base_dir, args.folder)
@@ -145,7 +138,7 @@ def main() :
             logging.error(e)
             return
 
-    # Find image files (only .jpg for this template)
+    # find image files (only .jpg for this template)
     image_files = [f for f in os.listdir(folder_path)
                    if f.lower().endswith('.jpg') and not f.startswith('.')]
     image_files.sort(key=common.natural_sort_key)
@@ -171,9 +164,16 @@ def main() :
             logging.error("Invalid selection.")
             return
 
+    # determine the grid colour
+    if args.color is None:
+        colour = choose_color()
+    else:
+        colour = args.color
+    logging.info(f"Using grid colour: {colour}")
+
     image_path = os.path.join(folder_path, selected)
 
-    # Load, crop, draw, save
+    # load, crop, draw, save
     with Image.open(image_path) as img :
         cropped = crop_img(img, args.ratio)
         final = draw_lines(cropped, colour)

@@ -33,10 +33,10 @@ VALID_DIRECTORIES : List[str] = [
     "/run/media/User/PERSONAL3", # specific usb linux
     "/Volumes/PERSONAL3", # specific usb macos
 
+    # "C:\\Users\\davis\\Desktop\\everything\\photos\\draw", # test
     "/Users/whoshotnate/Desktop/everything/photos/draw", # personal mac pc
     "/Users/whoshotnate/Desktop/everything/games/DolphinEmulator/etc", # personal mac pc
-    "C:\\Users\\ASUS\\Desktop\\everything\\photos\\draw", # personal win pc
-    "C:\\Users\\ASUS\\Desktop\\everything\\games\\DolphinEmulator\\etc" # personal win pc
+    "C:\\Users\\davis\\Desktop\\everything\\games\\DolphinEmulator\\etc" # personal win pc
 ]
 IGNORE: set = {"System Volume Information"}
 GRID_DIVISOR: int = 8
